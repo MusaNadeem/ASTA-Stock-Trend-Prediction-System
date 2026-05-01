@@ -1,0 +1,506 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard â€” ASTA Terminal</title>
+  <meta name="description" content="AI trading dashboard with ASTA, Tape, and MHVP model predictions for PSX stocks." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=2" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="terminal-body">
+
+  <!-- â”€â”€â”€ SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <nav class="t-sidebar" id="tSidebar">
+    <div class="t-sidebar-logo">
+      <a href="/" class="t-logo-link">
+        <span class="logo-mark">Î›</span>
+        <span class="logo-text">ASTA Terminal</span>
+      </a>
+    </div>
+
+    <div class="t-sidebar-stock">
+      <label class="t-sidebar-label">Active Stock</label>
+      <select id="stockSelect" class="t-sidebar-select"></select>
+    </div>
+
+    <div class="t-sidebar-regime">
+      <div class="regime-badge" id="marketRegimeBadge">Sideways market</div>
+    </div>
+
+    <ul class="t-nav-list">
+      <li><a href="/dashboard" class="t-nav-link active" data-nav-tab="dashboard"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a></li>
+      <li><a href="/charts" class="t-nav-link" data-nav-tab="charts"><i class="fa-solid fa-chart-line"></i><span>Charts</span></a></li>
+      <li><a href="/signals" class="t-nav-link" data-nav-tab="signals"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI Signals</span></a></li>
+      <li><a href="/market" class="t-nav-link" data-nav-tab="market"><i class="fa-solid fa-bolt"></i><span>Market Feed</span></a></li>
+      <li><a href="/portfolio" class="t-nav-link" data-nav-tab="portfolio"><i class="fa-solid fa-wallet"></i><span>Portfolio</span></a></li>
+      <li><a href="/insights" class="t-nav-link" data-nav-tab="insights"><i class="fa-solid fa-newspaper"></i><span>Insights</span></a></li>
+    </ul>
+
+    <div class="t-sidebar-alerts">
+      <div class="t-alerts-header">
+        <h4>Live Alerts</h4>
+        <span class="t-alert-count" id="alertCount">0</span>
+      </div>
+      <div id="alertPanel" class="t-alert-list">
+        <div class="t-alert-empty"><i class="fa-solid fa-bell-slash"></i> No alerts yet</div>
+      </div>
+    </div>
+
+    <div class="t-sidebar-bottom">
+      <div class="t-live-indicator">
+        <span class="live-dot"></span>
+        <span id="liveStatusText">LIVE</span>
+        <span class="t-model-badge" id="modelStatusChip">ASTA + TAPE + MHVP</span>
+      </div>
+    </div>
+  </nav>
+
+  <!-- â”€â”€â”€ MAIN CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <main class="t-main">
+
+    <!-- TOPBAR -->
+    <header class="t-topbar">
+      <div class="t-topbar-left">
+        <button class="t-sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+        <div class="t-topbar-title">
+          <h1>Dashboard</h1>
+          <span id="topbarSymbolBreadcrumb">Select a stock to begin</span>
+        </div>
+      </div>
+      <div class="t-topbar-right">
+        <div class="t-price-chip" id="topbarPriceChip">
+          <span class="t-price-label">Price</span>
+          <strong id="topbarPriceChip">â€”</strong>
+        </div>
+        <div class="t-mode-chip" id="topbarModeChip">ASTA</div>
+        <div class="t-status-dot-wrapper">
+          <span class="live-dot"></span>
+        </div>
+      </div>
+    </header>
+
+    <!-- PAGE CONTENT -->
+    <div class="t-page-content">
+
+      <!-- STATUS BAR -->
+      <div class="t-status-ribbon" id="statusRibbon">
+        <div class="t-status-item">
+          <span>Model Status</span>
+          <strong id="modelLifecycleText">Idle</strong>
+        </div>
+        <div class="t-status-item">
+          <span>Market Regime</span>
+          <strong id="regimeTextMirror">â€”</strong>
+        </div>
+        <div class="t-status-item">
+          <span>Engine</span>
+          <strong>ASTA + TAPE + MHVP</strong>
+        </div>
+        <div class="t-status-item">
+          <div id="statusBar" class="t-inline-status">Ready</div>
+        </div>
+      </div>
+
+      <!-- â”€ SECTION: CONTROLS â”€ -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-sliders"></i> Controls</h2>
+        </div>
+        <div class="t-controls-grid">
+          <!-- Stock & Mode -->
+          <div class="t-card">
+            <h3 class="t-card-title">Forecast Configuration</h3>
+            <div class="t-form-group">
+              <label class="t-label">Attention Mode</label>
+              <select id="attentionModeSelect" class="t-select">
+                <option value="asta">ASTA (Custom Sparse)</option>
+                <option value="standard">Standard Attention</option>
+              </select>
+            </div>
+            <div class="t-form-group">
+              <label class="t-label">Forecast Mode</label>
+              <select id="forecastModeSelect" class="t-select">
+                <option value="t1" selected>1-step forecast</option>
+                <option value="t3">3-step forecast</option>
+                <option value="t7">7-step forecast</option>
+                <option value="custom_date">Predict by date</option>
+              </select>
+            </div>
+            <div class="t-form-group" id="futureDateGroup" style="display:none">
+              <label class="t-label">Target Date</label>
+              <input id="futureDateInput" type="date" class="t-input" disabled />
+            </div>
+            <div class="t-form-group">
+              <label class="t-label">Upload CSV</label>
+              <input id="fileInput" type="file" accept=".csv" class="t-file-input" />
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="t-card">
+            <h3 class="t-card-title">Actions</h3>
+            <div class="t-action-buttons">
+              <button id="loadDataBtn" class="t-btn t-btn-secondary"><i class="fa-solid fa-database"></i> Load Data</button>
+              <button id="trainBtn" class="t-btn t-btn-primary"><i class="fa-solid fa-brain"></i> Train Model</button>
+              <button id="predictBtn" class="t-btn t-btn-accent"><i class="fa-solid fa-wand-magic-sparkles"></i> Predict Trend</button>
+              <button id="predictDateBtn" class="t-btn t-btn-outline"><i class="fa-solid fa-calendar-days"></i> Predict for Date</button>
+            </div>
+            <div class="t-progress-wrap" aria-hidden="true">
+              <div id="trainingProgressBar" class="t-progress-bar"></div>
+            </div>
+            <div id="datePredictionStatus" class="t-mini-status">Ready.</div>
+          </div>
+
+          <!-- Future Date Forecast -->
+          <div class="t-card">
+            <h3 class="t-card-title">Future Date Forecast</h3>
+            <div class="t-forecast-result-card">
+              <div class="t-forecast-signal" id="futureForecastLabel">Waiting for date</div>
+              <div class="t-confidence-ring" id="futureConfidenceRing">
+                <span id="futureConfidenceValue">0%</span>
+              </div>
+            </div>
+            <div class="t-forecast-meta-row">
+              <div class="t-meta-item">
+                <span>Price Range</span>
+                <strong id="futurePriceRange">â€”</strong>
+              </div>
+              <div class="t-meta-item">
+                <span>Regime</span>
+                <strong id="futureRegimeValue">â€”</strong>
+              </div>
+            </div>
+          </div>
+
+          <!-- Summary -->
+          <div class="t-card summary-card-control">
+            <h3 class="t-card-title">Live Summary</h3>
+            <div class="t-summary-grid">
+              <div class="t-summary-item">
+                <span>Current Price</span>
+                <strong id="currentPriceValue">â€”</strong>
+              </div>
+              <div class="t-summary-item">
+                <span>Trend Direction</span>
+                <strong id="trendDirectionValue">Neutral</strong>
+              </div>
+              <div class="t-summary-item">
+                <span>Trading Volume</span>
+                <strong id="tradingVolumeValue">â€”</strong>
+              </div>
+              <div class="t-summary-item confidence-summary-item">
+                <span>Model Confidence</span>
+                <div class="t-confidence-ring t-confidence-ring--sm" id="dashboardConfidenceRing">
+                  <span id="dashboardConfidenceValue">0%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- â”€ SECTION: MULTI-MODEL PREDICTIONS â”€ -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Multi-Model Prediction</h2>
+          <div class="t-section-meta">Train the model and click Predict Trend to populate</div>
+        </div>
+        <div class="t-prediction-strip">
+          <!-- Final Signal -->
+          <div class="t-card t-signal-card" id="finalSignalCard">
+            <div class="t-signal-badge-wrap">
+              <div class="t-signal-eyebrow">MERGED AI SIGNAL</div>
+              <div class="t-signal-label" id="trendLabel">NEUTRAL</div>
+              <div class="t-signal-confidence">
+                <span>Confidence</span>
+                <strong id="confidenceValue">0.00%</strong>
+              </div>
+            </div>
+            <div class="t-signal-action-indicator" id="signalActionIndicator">â€”</div>
+          </div>
+
+          <!-- ASTA Card -->
+          <div class="t-card t-model-pred-card">
+            <div class="t-model-pred-header">
+              <span class="t-model-badge-tag asta">ASTA</span>
+              <span class="t-model-pred-name">Adaptive Sparse Temporal Attention</span>
+            </div>
+            <div class="t-model-prob-bars" id="astaProbBars">
+              <div class="t-prob-row">
+                <span>Down</span>
+                <div class="t-prob-track"><div class="t-prob-fill down" style="width:33%"></div></div>
+                <span>33%</span>
+              </div>
+              <div class="t-prob-row">
+                <span>Neutral</span>
+                <div class="t-prob-track"><div class="t-prob-fill neutral" style="width:33%"></div></div>
+                <span>33%</span>
+              </div>
+              <div class="t-prob-row">
+                <span>Up</span>
+                <div class="t-prob-track"><div class="t-prob-fill up" style="width:33%"></div></div>
+                <span>33%</span>
+              </div>
+            </div>
+            <div class="t-model-verdict" id="astaVerdict">â€”</div>
+          </div>
+
+          <!-- TAPE Card -->
+          <div class="t-card t-model-pred-card">
+            <div class="t-model-pred-header">
+              <span class="t-model-badge-tag tape">TAPE</span>
+              <span class="t-model-pred-name">Trend-Aware Positional Encoding</span>
+            </div>
+            <div class="t-prob-bars" id="tapeProbBars">
+              <div class="t-prob-row">
+                <span>Down</span>
+                <div class="t-prob-track"><div class="t-prob-fill down" style="width:33%"></div></div>
+                <span>33%</span>
+              </div>
+              <div class="t-prob-row">
+                <span>Neutral</span>
+                <div class="t-prob-track"><div class="t-prob-fill neutral" style="width:33%"></div></div>
+                <span>33%</span>
+              </div>
+              <div class="t-prob-row">
+                <span>Up</span>
+                <div class="t-prob-track"><div class="t-prob-fill up" style="width:33%"></div></div>
+                <span>33%</span>
+              </div>
+            </div>
+            <div class="t-model-verdict" id="tapeVerdict">â€”</div>
+          </div>
+
+          <!-- MHVP Card -->
+          <div class="t-card t-model-pred-card">
+            <div class="t-model-pred-header">
+              <span class="t-model-badge-tag mhvp">MHVP</span>
+              <span class="t-model-pred-name">Multi-Horizon Voting Predictor</span>
+            </div>
+            <div class="t-horizon-mini-grid" id="horizonResults">
+              <div class="t-horizon-mini">
+                <small>Short</small>
+                <strong>â€”</strong>
+              </div>
+              <div class="t-horizon-mini">
+                <small>Mid</small>
+                <strong>â€”</strong>
+              </div>
+              <div class="t-horizon-mini">
+                <small>Long</small>
+                <strong>â€”</strong>
+              </div>
+            </div>
+            <div class="t-model-verdict" id="mhvpVerdict">â€”</div>
+          </div>
+        </div>
+
+        <!-- Probabilities -->
+        <div class="t-prob-section">
+          <div class="t-card" style="grid-column:1/-1">
+            <h3 class="t-card-title">Prediction Probabilities</h3>
+            <div class="t-prob-grid" id="probabilities"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- â”€ SECTION: AI EXPLAINABILITY â”€ -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-lightbulb"></i> AI Explainability</h2>
+          <div class="t-section-meta">Why did the model make this prediction?</div>
+        </div>
+        <div class="t-explain-grid">
+          <div class="t-card t-explain-card" id="whyPredictionPanel">
+            <div class="t-explain-icon"><i class="fa-solid fa-crosshairs"></i></div>
+            <h4>ASTA Attention Focus</h4>
+            <p>Select a stock and train the model to see which timesteps ASTA focused on.</p>
+          </div>
+          <div class="t-card t-explain-card" id="trendInfluencePanel">
+            <div class="t-explain-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+            <h4>Trend Influence Score</h4>
+            <p>Trend influence score will appear after prediction.</p>
+          </div>
+          <div class="t-card t-explain-card" id="volatilityContributionPanel">
+            <div class="t-explain-icon"><i class="fa-solid fa-wave-square"></i></div>
+            <h4>Volatility Contribution</h4>
+            <p>Volatility contribution will appear after prediction.</p>
+          </div>
+        </div>
+
+        <!-- ASTA Focus Timesteps & Volatility Spikes -->
+        <div class="t-focus-row">
+          <div class="t-card">
+            <h3 class="t-card-title"><i class="fa-solid fa-magnifying-glass"></i> ASTA Focus Timesteps</h3>
+            <div class="t-focus-pills" id="focusTimestepsPanel">
+              <div class="t-focus-empty">No focus points yet. Load data first.</div>
+            </div>
+          </div>
+          <div class="t-card">
+            <h3 class="t-card-title"><i class="fa-solid fa-triangle-exclamation"></i> Volatility Spikes</h3>
+            <div class="t-focus-pills" id="volatilitySpikesPanel">
+              <div class="t-focus-empty">No spikes detected yet.</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- â”€ SECTION: CHARTS â”€ -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-chart-line"></i> Price Charts</h2>
+          <a href="/charts" class="t-section-link">Full Chart View <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        <div class="t-charts-grid">
+          <div class="t-card t-chart-card">
+            <h3 class="t-card-title">Close Price & ASTA Focus</h3>
+            <canvas id="lineChart"></canvas>
+          </div>
+          <div class="t-card t-chart-card">
+            <h3 class="t-card-title">Trend Probability Breakdown</h3>
+            <canvas id="barChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- â”€ SECTION: MODEL INSIGHTS â”€ -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-microchip"></i> Model Insights</h2>
+        </div>
+        <div class="t-insights-grid">
+          <div class="t-card">
+            <h3 class="t-card-title">Training Metrics</h3>
+            <div class="t-metrics-grid" id="metrics"></div>
+          </div>
+          <div class="t-card">
+            <h3 class="t-card-title">Runtime Comparison</h3>
+            <div id="modelRuntimeGrid"></div>
+          </div>
+          <div class="t-card">
+            <h3 class="t-card-title">Complexity</h3>
+            <div id="modelComplexityGrid"></div>
+          </div>
+          <div class="t-card">
+            <h3 class="t-card-title">Algorithm Analysis</h3>
+            <div id="analysisGrid"></div>
+          </div>
+        </div>
+        <div class="t-card t-card-full" style="margin-top:20px">
+          <h3 class="t-card-title">Model Stats</h3>
+          <div class="t-summary-grid" id="modelStatsGrid"></div>
+        </div>
+      </section>
+
+      <!-- â”€ SECTION: DATA UPLOAD â”€ -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-upload"></i> Data Upload & Training</h2>
+        </div>
+        <div class="t-upload-grid">
+          <div class="t-card">
+            <h3 class="t-card-title">Upload CSV</h3>
+            <div class="t-drop-zone" id="dropZone" tabindex="0" role="button" aria-label="Drag and drop CSV file here or click to browse">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+              <strong>Drag & Drop CSV here</strong>
+              <span>or click to browse</span>
+              <input id="fileInputData" type="file" accept=".csv" />
+            </div>
+            <p class="t-helper">Upload any OHLCV CSV file to train on custom data.</p>
+          </div>
+
+          <div class="t-card">
+            <h3 class="t-card-title">Train with Upload</h3>
+            <div class="t-action-buttons">
+              <button id="trainUploadedBtn" class="t-btn t-btn-primary"><i class="fa-solid fa-brain"></i> Train Uploaded Data</button>
+            </div>
+            <div class="t-progress-wrap">
+              <div id="trainingProgressBar2" class="t-progress-bar"></div>
+            </div>
+            <div class="t-mini-status" id="dataStatusBar">Ready.</div>
+          </div>
+
+          <div class="t-card t-card-full">
+            <h3 class="t-card-title"><i class="fa-solid fa-terminal"></i> Training Log</h3>
+            <div id="trainingLog" class="t-terminal" aria-live="polite">
+              <div class="t-log-line"><span class="t-prompt">$</span> waiting for upload or training...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- â”€ SECTION: PORTFOLIO â”€ -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-wallet"></i> Portfolio Simulation</h2>
+          <a href="/portfolio" class="t-section-link">Full Portfolio <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+        <div class="t-portfolio-grid">
+          <div class="t-card">
+            <h3 class="t-card-title">Simulate Trade</h3>
+            <div class="t-form-group">
+              <label class="t-label">Buy Quantity</label>
+              <input id="portfolioQtyInput" type="number" min="1" step="1" value="10" class="t-input" />
+            </div>
+            <div class="t-form-group">
+              <label class="t-label">Entry Price</label>
+              <input id="portfolioEntryInput" type="number" min="0" step="0.01" placeholder="Auto from current price" class="t-input" />
+            </div>
+            <div class="t-action-buttons">
+              <button id="simulateBuyBtn" class="t-btn t-btn-accent"><i class="fa-solid fa-arrow-trend-up"></i> Simulate Buy</button>
+              <button id="resetPortfolioBtn" class="t-btn t-btn-outline"><i class="fa-solid fa-rotate-left"></i> Reset</button>
+            </div>
+          </div>
+          <div class="t-card t-card-wide">
+            <h3 class="t-card-title">Portfolio Performance</h3>
+            <div class="t-portfolio-stats" id="portfolioStats"></div>
+            <canvas id="portfolioChart" height="120"></canvas>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- end t-page-content -->
+  </main>
+
+  <!-- TOAST -->
+  <div id="toastContainer" class="t-toast-container" aria-live="polite"></div>
+
+  <script src="/static/app.js?v=2"></script><script src="/static/dashboard_ext.js?v=2"></script>
+  <script>
+    // Sidebar toggle for mobile
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      document.getElementById('tSidebar').classList.toggle('mobile-open');
+    });
+
+    // Sync trainingProgressBar2 with trainingProgressBar
+    const pb1 = document.getElementById('trainingProgressBar');
+    const pb2 = document.getElementById('trainingProgressBar2');
+    if (pb1 && pb2) {
+      const obs = new MutationObserver(() => {
+        pb2.className = pb1.className;
+        pb2.style.cssText = pb1.style.cssText;
+      });
+      obs.observe(pb1, { attributes: true, attributeFilter: ['class', 'style'] });
+    }
+
+    // Forecast mode toggling
+    const forecastMode = document.getElementById('forecastModeSelect');
+    const futureDateGroup = document.getElementById('futureDateGroup');
+    if (forecastMode && futureDateGroup) {
+      forecastMode.addEventListener('change', () => {
+        futureDateGroup.style.display = forecastMode.value === 'custom_date' ? 'block' : 'none';
+      });
+    }
+  </script>
+</body>
+</html>
+
+
+

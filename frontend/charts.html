@@ -1,0 +1,364 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Charts â€” ASTA Terminal</title>
+  <meta name="description" content="Interactive stock charts with AI signal overlays and technical indicators." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=2" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="terminal-body">
+
+  <nav class="t-sidebar" id="tSidebar">
+    <div class="t-sidebar-logo">
+      <a href="/" class="t-logo-link"><span class="logo-mark">Î›</span><span class="logo-text">ASTA Terminal</span></a>
+    </div>
+    <div class="t-sidebar-stock">
+      <label class="t-sidebar-label">Active Stock</label>
+      <select id="stockSelect" class="t-sidebar-select"></select>
+    </div>
+    <div class="t-sidebar-regime">
+      <div class="regime-badge" id="marketRegimeBadge">Sideways market</div>
+    </div>
+    <ul class="t-nav-list">
+      <li><a href="/dashboard" class="t-nav-link" data-nav-tab="dashboard"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a></li>
+      <li><a href="/charts" class="t-nav-link active" data-nav-tab="charts"><i class="fa-solid fa-chart-line"></i><span>Charts</span></a></li>
+      <li><a href="/signals" class="t-nav-link"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI Signals</span></a></li>
+      <li><a href="/market" class="t-nav-link"><i class="fa-solid fa-bolt"></i><span>Market Feed</span></a></li>
+      <li><a href="/portfolio" class="t-nav-link"><i class="fa-solid fa-wallet"></i><span>Portfolio</span></a></li>
+      <li><a href="/insights" class="t-nav-link"><i class="fa-solid fa-newspaper"></i><span>Insights</span></a></li>
+    </ul>
+    <div class="t-sidebar-bottom">
+      <div class="t-live-indicator"><span class="live-dot"></span><span>LIVE</span></div>
+    </div>
+  </nav>
+
+  <main class="t-main">
+    <header class="t-topbar">
+      <div class="t-topbar-left">
+        <button class="t-sidebar-toggle" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
+        <div class="t-topbar-title">
+          <h1>Charts</h1>
+          <span id="chartSymbolBreadcrumb">Select a stock</span>
+        </div>
+      </div>
+      <div class="t-topbar-right">
+        <div class="t-price-chip">
+          <span class="t-price-label">Price</span>
+          <strong id="chartPriceValue">â€”</strong>
+        </div>
+        <div class="t-mode-chip" id="chartModeChip">ASTA</div>
+      </div>
+    </header>
+
+    <div class="t-page-content">
+
+      <!-- Chart Controls -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-sliders"></i> Chart Controls</h2>
+        </div>
+        <div class="t-chart-controls-bar">
+          <div class="t-form-group-inline">
+            <label class="t-label">Attention Mode</label>
+            <select id="chartAttentionMode" class="t-select t-select-sm">
+              <option value="asta">ASTA</option>
+              <option value="standard">Standard</option>
+            </select>
+          </div>
+          <div class="t-form-group-inline">
+            <label class="t-label">Indicators</label>
+            <div class="t-toggle-group">
+              <label class="t-toggle-label"><input type="checkbox" id="showMA" checked /> <span>MA</span></label>
+              <label class="t-toggle-label"><input type="checkbox" id="showVolume" checked /> <span>Volume</span></label>
+              <label class="t-toggle-label"><input type="checkbox" id="showForecast" checked /> <span>Forecast</span></label>
+              <label class="t-toggle-label"><input type="checkbox" id="showFocus" checked /> <span>ASTA Focus</span></label>
+            </div>
+          </div>
+          <div class="t-chart-actions">
+            <button id="chartLoadBtn" class="t-btn t-btn-primary"><i class="fa-solid fa-chart-line"></i> Load & Chart</button>
+            <button id="chartPredictBtn" class="t-btn t-btn-accent"><i class="fa-solid fa-wand-magic-sparkles"></i> Add Forecast</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Main Price Chart - Full Width -->
+      <section class="t-section">
+        <div class="t-card t-chart-fullscreen-card">
+          <div class="t-chart-header">
+            <div>
+              <h3 class="t-card-title" id="mainChartTitle">Price Chart</h3>
+              <div class="t-chart-subtitle" id="mainChartSubtitle">OHLCV Â· ASTA focus points Â· Forecast overlay</div>
+            </div>
+            <div class="t-chart-legend">
+              <span class="t-legend-item"><span class="t-legend-dot price"></span>Close Price</span>
+              <span class="t-legend-item"><span class="t-legend-dot focus"></span>ASTA Focus</span>
+              <span class="t-legend-item"><span class="t-legend-dot forecast"></span>Forecast</span>
+              <span class="t-legend-item"><span class="t-legend-dot vol"></span>Volatility</span>
+            </div>
+          </div>
+          <canvas id="lineChart" class="t-chart-canvas-lg"></canvas>
+        </div>
+      </section>
+
+      <!-- Secondary Charts Row -->
+      <section class="t-section">
+        <div class="t-two-col-charts">
+          <!-- Trend Probability Bar Chart -->
+          <div class="t-card t-chart-card">
+            <h3 class="t-card-title">Trend Probability Breakdown</h3>
+            <canvas id="barChart"></canvas>
+          </div>
+
+          <!-- Volume Chart -->
+          <div class="t-card t-chart-card">
+            <h3 class="t-card-title">Volume History</h3>
+            <canvas id="volumeChart"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Moving Averages -->
+      <section class="t-section">
+        <div class="t-card">
+          <h3 class="t-card-title"><i class="fa-solid fa-chart-area"></i> Moving Averages (Price Overlay)</h3>
+          <canvas id="maChart" style="max-height:260px"></canvas>
+        </div>
+      </section>
+
+      <!-- AI Signal Overlay Info -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-info-circle"></i> Chart Reading Guide</h2>
+        </div>
+        <div class="t-guide-grid">
+          <div class="t-card t-guide-card">
+            <div class="t-guide-dot price"></div>
+            <h4>Teal Line â€” Close Price</h4>
+            <p>The historical close price series for the selected stock over the last 60 sliding-window timesteps.</p>
+          </div>
+          <div class="t-card t-guide-card">
+            <div class="t-guide-dot focus"></div>
+            <h4>Yellow Dots â€” ASTA Focus</h4>
+            <p>Points the ASTA model assigned highest attention weight to. These are the timesteps that most influenced the prediction.</p>
+          </div>
+          <div class="t-card t-guide-card">
+            <div class="t-guide-dot forecast"></div>
+            <h4>Dashed Line â€” Forecast</h4>
+            <p>Projected price trajectory from MHVP recursive forecasting. Run a prediction to see the AI forecast curve extend the chart.</p>
+          </div>
+          <div class="t-card t-guide-card">
+            <div class="t-guide-dot vol"></div>
+            <h4>Blue Area â€” Volatility</h4>
+            <p>Rolling variance of the price window scaled for overlay display. Peaks indicate regime uncertainty periods.</p>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div id="toastContainer" class="t-toast-container" aria-live="polite"></div>
+
+  <script src="/static/app.js?v=2"></script>
+  <script>
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      document.getElementById('tSidebar').classList.toggle('mobile-open');
+    });
+
+    // Initialize chart page state
+    let chartPageData = {};
+    let chartPageForecast = null;
+    let volumeChart = null;
+    let maChart = null;
+
+    // Attach chart-specific controls
+    const chartLoadBtn = document.getElementById('chartLoadBtn');
+    const chartPredictBtn = document.getElementById('chartPredictBtn');
+    const stockSelect = document.getElementById('stockSelect');
+
+    chartLoadBtn.addEventListener('click', async () => {
+      const symbol = stockSelect.value;
+      if (!symbol) return;
+      document.getElementById('chartSymbolBreadcrumb').textContent = symbol;
+      document.getElementById('mainChartTitle').textContent = symbol + ' â€” Price Chart';
+      chartLoadBtn.disabled = true;
+      chartLoadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+      try {
+        const res = await fetch(`/data?symbol=${encodeURIComponent(symbol)}`);
+        chartPageData = await res.json();
+        document.getElementById('chartPriceValue').textContent = Number(chartPageData.current_price || 0).toFixed(2);
+        renderChartPageCharts();
+      } finally {
+        chartLoadBtn.disabled = false;
+        chartLoadBtn.innerHTML = '<i class="fa-solid fa-chart-line"></i> Load & Chart';
+      }
+    });
+
+    chartPredictBtn.addEventListener('click', async () => {
+      const symbol = stockSelect.value;
+      if (!symbol) { alert('Select a stock first.'); return; }
+      chartPredictBtn.disabled = true;
+      chartPredictBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Forecasting...';
+      try {
+        const fd = new FormData();
+        fd.append('symbol', symbol);
+        fd.append('steps', '7');
+        const res = await fetch('/forecast', { method: 'POST', body: fd });
+        chartPageForecast = await res.json();
+        renderChartPageCharts();
+      } finally {
+        chartPredictBtn.disabled = false;
+        chartPredictBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Add Forecast';
+      }
+    });
+
+    function renderChartPageCharts() {
+      const d = chartPageData;
+      if (!d || !d.recent_close_series) return;
+
+      const closes = d.recent_close_series || [];
+      const labels = d.recent_window_labels || d.recent_dates || closes.map((_, i) => `T${i}`);
+      const volumes = d.recent_volume_series || [];
+      const volatility = d.volatility_scores || [];
+      const focus = d.focus_timesteps || [];
+      const showForecast = document.getElementById('showForecast').checked;
+      const showFocus = document.getElementById('showFocus').checked;
+      const showVol = document.getElementById('showVolume').checked;
+      const showMA = document.getElementById('showMA').checked;
+
+      // Main line chart
+      const ctx = document.getElementById('lineChart').getContext('2d');
+      if (window.mainLineChart) window.mainLineChart.destroy();
+
+      const forecastLabels = chartPageForecast?.forecast_curve ? chartPageForecast.forecast_curve.map(p => `F${p.step}`) : [];
+      const allLabels = [...labels, ...forecastLabels];
+      const closeSeries = allLabels.map((_, i) => i < closes.length ? closes[i] : null);
+      const forecastSeries = allLabels.map((_, i) => {
+        if (!chartPageForecast?.forecast_curve) return null;
+        const fi = i - closes.length;
+        if (fi < 0 || fi >= chartPageForecast.forecast_curve.length) return null;
+        return chartPageForecast.forecast_curve[fi].close;
+      });
+      const focusSeries = allLabels.map((_, i) => (showFocus && focus.includes(i) && i < closes.length) ? closes[i] : null);
+      const volatilitySeries = allLabels.map((_, i) => i < volatility.length ? volatility[i] * 100 : null);
+
+      const datasets = [
+        { label: 'Close Price', data: closeSeries, borderColor: '#5eead4', backgroundColor: 'rgba(94,234,212,0.12)', borderWidth: 2, tension: 0.28, pointRadius: 0, fill: true },
+      ];
+      if (showFocus) datasets.push({ label: 'ASTA Focus', data: focusSeries, type: 'scatter', backgroundColor: 'rgba(253,224,71,0.95)', borderColor: 'rgba(253,224,71,1)', pointRadius: 7, showLine: false, yAxisID: 'y' });
+      if (showForecast && chartPageForecast) datasets.push({ label: 'Forecast', data: forecastSeries, borderColor: '#fde047', borderDash: [8,6], pointRadius: 4, pointBackgroundColor: '#fde047', fill: false, yAxisID: 'y', tension: 0.3 });
+      if (showVol) datasets.push({ label: 'Volatility', data: volatilitySeries, borderColor: 'rgba(96,165,250,0.8)', backgroundColor: 'rgba(96,165,250,0.1)', borderWidth: 1, tension: 0.28, pointRadius: 0, fill: false, yAxisID: 'y1' });
+
+      // MA calculations
+      if (showMA && closes.length > 10) {
+        const ma10 = closes.map((_, i) => i >= 9 ? closes.slice(i-9, i+1).reduce((a,b) => a+b, 0)/10 : null);
+        const ma20 = closes.map((_, i) => i >= 19 ? closes.slice(i-19, i+1).reduce((a,b) => a+b, 0)/20 : null);
+        datasets.push({ label: 'MA10', data: [...ma10, ...new Array(forecastLabels.length).fill(null)], borderColor: 'rgba(251,191,36,0.7)', borderWidth: 1.5, pointRadius: 0, fill: false, borderDash: [4,3] });
+        datasets.push({ label: 'MA20', data: [...ma20, ...new Array(forecastLabels.length).fill(null)], borderColor: 'rgba(167,139,250,0.7)', borderWidth: 1.5, pointRadius: 0, fill: false, borderDash: [4,3] });
+      }
+
+      window.mainLineChart = new Chart(ctx, {
+        type: 'line',
+        data: { labels: allLabels, datasets },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: '#e8eef7', font: { family: 'Inter' } } } },
+          scales: {
+            x: { ticks: { color: '#9db0d0', maxRotation: 0, maxTicksLimit: 12 }, grid: { color: 'rgba(148,163,184,0.08)' } },
+            y: { ticks: { color: '#9db0d0' }, grid: { color: 'rgba(148,163,184,0.08)' }, position: 'left' },
+            y1: { ticks: { color: '#9db0d0' }, grid: { drawOnChartArea: false }, position: 'right' },
+          },
+        },
+      });
+
+      // Volume chart
+      const vctx = document.getElementById('volumeChart').getContext('2d');
+      if (volumeChart) volumeChart.destroy();
+      volumeChart = new Chart(vctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Volume', data: volumes, backgroundColor: 'rgba(96,165,250,0.55)', borderColor: 'rgba(96,165,250,0.8)', borderWidth: 1 }],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: '#e8eef7' } } },
+          scales: {
+            x: { ticks: { color: '#9db0d0', maxRotation: 0, maxTicksLimit: 10 }, grid: { color: 'rgba(148,163,184,0.08)' } },
+            y: { ticks: { color: '#9db0d0' }, grid: { color: 'rgba(148,163,184,0.08)' } },
+          },
+        },
+      });
+
+      // MA chart
+      if (showMA) {
+        const mactx = document.getElementById('maChart').getContext('2d');
+        if (maChart) maChart.destroy();
+        const ma5 = closes.map((_, i) => i >= 4 ? closes.slice(i-4,i+1).reduce((a,b)=>a+b,0)/5 : null);
+        const ma10 = closes.map((_, i) => i >= 9 ? closes.slice(i-9,i+1).reduce((a,b)=>a+b,0)/10 : null);
+        const ma20 = closes.map((_, i) => i >= 19 ? closes.slice(i-19,i+1).reduce((a,b)=>a+b,0)/20 : null);
+        maChart = new Chart(mactx, {
+          type: 'line',
+          data: {
+            labels,
+            datasets: [
+              { label: 'Price', data: closes, borderColor: '#5eead4', borderWidth: 1.5, pointRadius: 0, fill: false },
+              { label: 'MA5', data: ma5, borderColor: '#fde047', borderWidth: 1.5, pointRadius: 0, fill: false, borderDash: [3,3] },
+              { label: 'MA10', data: ma10, borderColor: '#fb923c', borderWidth: 1.5, pointRadius: 0, fill: false, borderDash: [5,3] },
+              { label: 'MA20', data: ma20, borderColor: '#a78bfa', borderWidth: 1.5, pointRadius: 0, fill: false, borderDash: [7,3] },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { labels: { color: '#e8eef7' } } },
+            scales: {
+              x: { ticks: { color: '#9db0d0', maxRotation: 0, maxTicksLimit: 10 }, grid: { color: 'rgba(148,163,184,0.08)' } },
+              y: { ticks: { color: '#9db0d0' }, grid: { color: 'rgba(148,163,184,0.08)' } },
+            },
+          },
+        });
+      }
+
+      // Trigger bar chart from global if it exists
+      const barCtx = document.getElementById('barChart').getContext('2d');
+      if (window.chartBarChart) window.chartBarChart.destroy();
+      window.chartBarChart = new Chart(barCtx, {
+        type: 'bar',
+        data: {
+          labels: ['Downtrend', 'Neutral', 'Uptrend'],
+          datasets: [{ label: 'Trend Probability %', data: chartPageForecast ? (chartPageForecast.probabilities || [33,33,33]).map(v => v*100) : [33,33,33], backgroundColor: ['rgba(251,113,133,0.75)','rgba(253,224,71,0.75)','rgba(134,239,172,0.75)'], borderColor: ['rgba(251,113,133,1)','rgba(253,224,71,1)','rgba(134,239,172,1)'], borderWidth: 1 }],
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { labels: { color: '#e8eef7' } } },
+          scales: {
+            x: { ticks: { color: '#9db0d0' }, grid: { color: 'rgba(148,163,184,0.08)' } },
+            y: { ticks: { color: '#9db0d0' }, grid: { color: 'rgba(148,163,184,0.08)' }, beginAtZero: true, max: 100 },
+          },
+        },
+      });
+    }
+
+    // Load stocks and auto-load chart
+    fetch('/stocks').then(r => r.json()).then(d => {
+      const sel = document.getElementById('stockSelect');
+      sel.innerHTML = d.stocks.map(s => `<option value="${s.symbol}">${s.symbol}</option>`).join('');
+      sel.addEventListener('change', () => chartLoadBtn.click());
+      chartLoadBtn.click();
+    });
+
+    // Indicator toggles re-render
+    ['showMA','showVolume','showForecast','showFocus'].forEach(id => {
+      document.getElementById(id)?.addEventListener('change', renderChartPageCharts);
+    });
+  </script>
+</body>
+</html>
+
+

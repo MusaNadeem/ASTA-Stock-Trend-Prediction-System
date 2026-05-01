@@ -1,0 +1,408 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Signals â€” ASTA Terminal</title>
+  <meta name="description" content="Live AI trading signals with BUY/SELL/HOLD indicators, confidence scores, and model explainability." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=2" />
+</head>
+<body class="terminal-body">
+
+  <nav class="t-sidebar" id="tSidebar">
+    <div class="t-sidebar-logo">
+      <a href="/" class="t-logo-link"><span class="logo-mark">Î›</span><span class="logo-text">ASTA Terminal</span></a>
+    </div>
+    <div class="t-sidebar-stock">
+      <label class="t-sidebar-label">Active Stock</label>
+      <select id="signalStockSelect" class="t-sidebar-select"></select>
+    </div>
+    <div class="t-sidebar-regime">
+      <div class="regime-badge" id="signalRegimeBadge">Sideways market</div>
+    </div>
+    <ul class="t-nav-list">
+      <li><a href="/dashboard" class="t-nav-link"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a></li>
+      <li><a href="/charts" class="t-nav-link"><i class="fa-solid fa-chart-line"></i><span>Charts</span></a></li>
+      <li><a href="/signals" class="t-nav-link active"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI Signals</span></a></li>
+      <li><a href="/market" class="t-nav-link"><i class="fa-solid fa-bolt"></i><span>Market Feed</span></a></li>
+      <li><a href="/portfolio" class="t-nav-link"><i class="fa-solid fa-wallet"></i><span>Portfolio</span></a></li>
+      <li><a href="/insights" class="t-nav-link"><i class="fa-solid fa-newspaper"></i><span>Insights</span></a></li>
+    </ul>
+    <div class="t-sidebar-bottom">
+      <div class="t-live-indicator"><span class="live-dot"></span><span>LIVE</span></div>
+    </div>
+  </nav>
+
+  <main class="t-main">
+    <header class="t-topbar">
+      <div class="t-topbar-left">
+        <button class="t-sidebar-toggle" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
+        <div class="t-topbar-title">
+          <h1>AI Signals</h1>
+          <span>Multi-model prediction feed with confidence and explainability</span>
+        </div>
+      </div>
+      <div class="t-topbar-right">
+        <button id="generateSignalBtn" class="t-btn t-btn-primary"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate Signal</button>
+        <div class="t-mode-chip">ASTA + MHVP</div>
+      </div>
+    </header>
+
+    <div class="t-page-content">
+
+      <!-- Signal Controls -->
+      <section class="t-section">
+        <div class="t-controls-grid-2">
+          <div class="t-card">
+            <h3 class="t-card-title">Signal Configuration</h3>
+            <div class="t-form-group">
+              <label class="t-label">Attention Mode</label>
+              <select id="signalAttentionMode" class="t-select">
+                <option value="asta">ASTA (Recommended)</option>
+                <option value="standard">Standard Attention</option>
+              </select>
+            </div>
+            <div class="t-form-group">
+              <label class="t-label">Forecast Horizon</label>
+              <select id="signalHorizon" class="t-select">
+                <option value="t1">Short (1-step)</option>
+                <option value="t3" selected>Mid (3-step)</option>
+                <option value="t7">Long (7-step)</option>
+              </select>
+            </div>
+            <button id="generateSignalBtn2" class="t-btn t-btn-primary t-btn-full"><i class="fa-solid fa-wand-magic-sparkles"></i> Generate Signal</button>
+          </div>
+          <div class="t-card">
+            <h3 class="t-card-title">Signal History</h3>
+            <div id="signalHistoryList" class="t-signal-history">
+              <div class="t-signal-history-empty"><i class="fa-solid fa-clock-rotate-left"></i> No signals generated yet</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- MAIN SIGNAL DISPLAY -->
+      <section class="t-section" id="signalDisplay" style="display:none">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-bolt"></i> Current Signal â€” <span id="signalSymbolLabel">â€”</span></h2>
+          <div class="t-signal-timestamp" id="signalTimestamp">â€”</div>
+        </div>
+
+        <!-- Hero Signal Card -->
+        <div class="t-signal-hero">
+          <div class="t-signal-hero-main" id="signalHeroMain">
+            <div class="t-signal-hero-eyebrow">MERGED AI CONSENSUS</div>
+            <div class="t-signal-hero-label" id="signalHeroLabel">NEUTRAL</div>
+            <div class="t-signal-hero-action" id="signalHeroAction">HOLD</div>
+            <div class="t-signal-hero-conf">
+              <span>Model Confidence</span>
+              <strong id="signalHeroConf">0%</strong>
+            </div>
+          </div>
+
+          <div class="t-signal-hero-metrics">
+            <div class="t-shm-card">
+              <span>Market Regime</span>
+              <strong id="signalRegime">â€”</strong>
+            </div>
+            <div class="t-shm-card">
+              <span>Price Range (Forecast)</span>
+              <strong id="signalPriceRange">â€”</strong>
+            </div>
+            <div class="t-shm-card">
+              <span>Estimated Price</span>
+              <strong id="signalEstPrice">â€”</strong>
+            </div>
+          </div>
+        </div>
+
+        <!-- Model Breakdown Cards -->
+        <div class="t-signal-breakdown">
+          <div class="t-card t-signal-model-card">
+            <div class="t-smb-header">
+              <span class="t-model-badge-tag asta">ASTA</span>
+              <span>Adaptive Sparse Temporal Attention</span>
+            </div>
+            <div id="signalASTADetail" class="t-smb-detail">
+              <div class="t-smb-row"><span>Short-term:</span><strong id="signalShortLabel">â€”</strong></div>
+              <div class="t-smb-row"><span>Short Confidence:</span><strong id="signalShortConf">â€”</strong></div>
+            </div>
+          </div>
+
+          <div class="t-card t-signal-model-card">
+            <div class="t-smb-header">
+              <span class="t-model-badge-tag tape">TAPE</span>
+              <span>Trend-Aware Positional Encoding</span>
+            </div>
+            <div id="signalTAPEDetail" class="t-smb-detail">
+              <div class="t-smb-row"><span>Mid-term:</span><strong id="signalMidLabel">â€”</strong></div>
+              <div class="t-smb-row"><span>Mid Confidence:</span><strong id="signalMidConf">â€”</strong></div>
+            </div>
+          </div>
+
+          <div class="t-card t-signal-model-card">
+            <div class="t-smb-header">
+              <span class="t-model-badge-tag mhvp">MHVP</span>
+              <span>Multi-Horizon Voting Predictor</span>
+            </div>
+            <div id="signalMHVPDetail" class="t-smb-detail">
+              <div class="t-smb-row"><span>Long-term:</span><strong id="signalLongLabel">â€”</strong></div>
+              <div class="t-smb-row"><span>Long Confidence:</span><strong id="signalLongConf">â€”</strong></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Explainability Panel -->
+        <div class="t-section-header" style="margin-top:32px">
+          <h2 class="t-section-title"><i class="fa-solid fa-lightbulb"></i> Why This Signal?</h2>
+        </div>
+        <div class="t-explain-grid">
+          <div class="t-card t-explain-card" id="signalWhyPanel">
+            <div class="t-explain-icon"><i class="fa-solid fa-crosshairs"></i></div>
+            <h4>ASTA Attention Focus</h4>
+            <p id="signalWhyText">Generate a signal to see the explainability details.</p>
+          </div>
+          <div class="t-card t-explain-card" id="signalTrendPanel">
+            <div class="t-explain-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
+            <h4>Trend Influence</h4>
+            <p id="signalTrendText">Trend influence will appear after signal generation.</p>
+          </div>
+          <div class="t-card t-explain-card" id="signalVolPanel">
+            <div class="t-explain-icon"><i class="fa-solid fa-wave-square"></i></div>
+            <h4>Volatility Contribution</h4>
+            <p id="signalVolText">Volatility contribution will appear here.</p>
+          </div>
+        </div>
+
+        <!-- Probability breakdown -->
+        <div class="t-card" style="margin-top:20px">
+          <h3 class="t-card-title">Probability Distribution</h3>
+          <div class="t-prob-bars-large" id="signalProbBars">
+            <div class="t-prob-large-row down">
+              <span class="t-pbl-label">Downtrend</span>
+              <div class="t-pbl-track"><div class="t-pbl-fill down" id="signalProbDown" style="width:33%"></div></div>
+              <span class="t-pbl-pct" id="signalProbDownPct">33%</span>
+            </div>
+            <div class="t-prob-large-row neutral">
+              <span class="t-pbl-label">Neutral</span>
+              <div class="t-pbl-track"><div class="t-pbl-fill neutral" id="signalProbNeutral" style="width:33%"></div></div>
+              <span class="t-pbl-pct" id="signalProbNeutralPct">33%</span>
+            </div>
+            <div class="t-prob-large-row up">
+              <span class="t-pbl-label">Uptrend</span>
+              <div class="t-pbl-track"><div class="t-pbl-fill up" id="signalProbUp" style="width:33%"></div></div>
+              <span class="t-pbl-pct" id="signalProbUpPct">33%</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SCREENER SECTION -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-filter"></i> Stock Screener</h2>
+          <div class="t-section-meta">Scan multiple stocks for AI signals</div>
+        </div>
+        <div class="t-card">
+          <div class="t-screener-controls">
+            <div class="t-form-group-inline">
+              <label class="t-label">Quick Scan (Top N Stocks)</label>
+              <select id="screenerCount" class="t-select t-select-sm">
+                <option value="5">5 stocks</option>
+                <option value="10" selected>10 stocks</option>
+                <option value="20">20 stocks</option>
+              </select>
+            </div>
+            <button id="runScreenerBtn" class="t-btn t-btn-accent"><i class="fa-solid fa-radar"></i> Run Screener</button>
+          </div>
+          <div id="screenerResults" class="t-screener-table">
+            <div class="t-screener-empty"><i class="fa-solid fa-radar"></i> Run the screener to scan stocks for signals</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div id="toastContainer" class="t-toast-container" aria-live="polite"></div>
+
+  <script>
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      document.getElementById('tSidebar').classList.toggle('mobile-open');
+    });
+
+    function showToast(msg, tone='info') {
+      const c = document.getElementById('toastContainer');
+      const t = document.createElement('div');
+      t.className = `t-toast ${tone}`;
+      t.textContent = msg;
+      c.appendChild(t);
+      setTimeout(() => t.classList.add('visible'), 20);
+      setTimeout(() => { t.classList.remove('visible'); setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    let stocks = [];
+    let signalHistory = [];
+
+    fetch('/stocks').then(r => r.json()).then(d => {
+      stocks = d.stocks;
+      const sel = document.getElementById('signalStockSelect');
+      sel.innerHTML = d.stocks.map(s => `<option value="${s.symbol}">${s.symbol}</option>`).join('');
+    });
+
+    async function generateSignal() {
+      const symbol = document.getElementById('signalStockSelect').value;
+      const mode = document.getElementById('signalAttentionMode').value;
+      const horizon = document.getElementById('signalHorizon').value;
+      if (!symbol) { showToast('Select a stock first.', 'warning'); return; }
+
+      const btn = document.getElementById('generateSignalBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Generating...';
+
+      try {
+        const fd = new FormData();
+        fd.append('symbol', symbol);
+        fd.append('use_standard_attention', mode === 'standard' ? 'true' : 'false');
+        const steps = horizon === 't1' ? 1 : horizon === 't3' ? 3 : 7;
+        fd.append('steps', steps);
+
+        const [dataRes, forecastRes] = await Promise.all([
+          fetch(`/data?symbol=${encodeURIComponent(symbol)}`),
+          fetch('/forecast', { method: 'POST', body: fd }),
+        ]);
+        const data = await dataRes.json();
+        const forecast = await forecastRes.json();
+
+        renderSignalDisplay(symbol, data, forecast);
+        addSignalHistory(symbol, forecast);
+        document.getElementById('signalDisplay').style.display = 'block';
+        document.getElementById('signalDisplay').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        showToast(`Signal generated for ${symbol}: ${forecast.label}`, forecast.label === 'Uptrend' ? 'success' : forecast.label === 'Downtrend' ? 'error' : 'info');
+      } catch (e) {
+        showToast('Failed to generate signal.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Generate Signal';
+      }
+    }
+
+    function renderSignalDisplay(symbol, data, forecast) {
+      document.getElementById('signalSymbolLabel').textContent = symbol;
+      document.getElementById('signalTimestamp').textContent = new Date().toLocaleString();
+      document.getElementById('signalRegimeBadge').textContent = data.market_regime || forecast.market_regime || 'Sideways market';
+
+      const label = forecast.label || 'Neutral';
+      const conf = (Number(forecast.confidence || 0) * 100).toFixed(1);
+      const action = label === 'Uptrend' ? 'BUY' : label === 'Downtrend' ? 'SELL' : 'HOLD';
+
+      const heroMain = document.getElementById('signalHeroMain');
+      heroMain.className = 't-signal-hero-main ' + (label === 'Uptrend' ? 'up' : label === 'Downtrend' ? 'down' : 'neutral');
+      document.getElementById('signalHeroLabel').textContent = label.toUpperCase();
+      document.getElementById('signalHeroAction').textContent = action;
+      document.getElementById('signalHeroAction').className = 't-signal-hero-action action-' + action.toLowerCase();
+      document.getElementById('signalHeroConf').textContent = conf + '%';
+      document.getElementById('signalRegime').textContent = forecast.market_regime || data.market_regime || 'â€”';
+      document.getElementById('signalPriceRange').textContent = forecast.price_range ? `${Number(forecast.price_range.low).toFixed(2)} â€“ ${Number(forecast.price_range.high).toFixed(2)}` : 'â€”';
+      document.getElementById('signalEstPrice').textContent = forecast.predicted_price ? Number(forecast.predicted_price).toFixed(2) : 'â€”';
+
+      // Horizon breakdown
+      const hp = forecast.horizon_predictions || {};
+      const entries = Object.entries(hp);
+      if (entries[0]) { document.getElementById('signalShortLabel').textContent = entries[0][1].label || 'â€”'; document.getElementById('signalShortConf').textContent = ((entries[0][1].confidence||0)*100).toFixed(1)+'%'; }
+      if (entries[1]) { document.getElementById('signalMidLabel').textContent = entries[1][1].label || 'â€”'; document.getElementById('signalMidConf').textContent = ((entries[1][1].confidence||0)*100).toFixed(1)+'%'; }
+      if (entries[2]) { document.getElementById('signalLongLabel').textContent = entries[2][1].label || 'â€”'; document.getElementById('signalLongConf').textContent = ((entries[2][1].confidence||0)*100).toFixed(1)+'%'; }
+
+      // Explainability
+      const focus = (data?.focus_timesteps || forecast?.focus_timesteps || []).slice(0,6);
+      const volatility = (data?.volatility_scores || forecast?.volatility_scores || []).slice(-6);
+      const trendScore = forecast.probabilities ? (Number(forecast.probabilities[2]||0) - Number(forecast.probabilities[0]||0)) : 0;
+      const volContrib = volatility.length ? volatility.reduce((s,v)=>s+Number(v),0)/volatility.length : 0;
+      document.getElementById('signalWhyText').textContent = `ASTA concentrated attention on ${focus.length} key timesteps using local recency, logarithmic history, and volatility-based selection to form the prediction.`;
+      document.getElementById('signalTrendText').textContent = `Trend influence score: ${trendScore.toFixed(4)}. ${trendScore > 0 ? 'Positive values bias the model toward upward continuation.' : 'Negative values bias the model toward downward momentum.'}`;
+      document.getElementById('signalVolText').textContent = `Volatility contribution: ${volContrib.toFixed(4)}. ${volContrib > 0.01 ? 'Elevated volatility detected â€” price range estimates are wider.' : 'Low volatility environment â€” tighter forecast range.'}`;
+
+      // Prob bars
+      const probs = forecast.probabilities || [0.33, 0.33, 0.33];
+      const pDown = (Number(probs[0])*100).toFixed(1);
+      const pNeutral = (Number(probs[1])*100).toFixed(1);
+      const pUp = (Number(probs[2])*100).toFixed(1);
+      document.getElementById('signalProbDown').style.width = pDown + '%';
+      document.getElementById('signalProbDownPct').textContent = pDown + '%';
+      document.getElementById('signalProbNeutral').style.width = pNeutral + '%';
+      document.getElementById('signalProbNeutralPct').textContent = pNeutral + '%';
+      document.getElementById('signalProbUp').style.width = pUp + '%';
+      document.getElementById('signalProbUpPct').textContent = pUp + '%';
+    }
+
+    function addSignalHistory(symbol, forecast) {
+      const label = forecast.label || 'Neutral';
+      const conf = (Number(forecast.confidence||0)*100).toFixed(1);
+      const action = label === 'Uptrend' ? 'BUY' : label === 'Downtrend' ? 'SELL' : 'HOLD';
+      signalHistory.unshift({ symbol, label, conf, action, time: new Date().toLocaleTimeString() });
+      if (signalHistory.length > 10) signalHistory.pop();
+      const list = document.getElementById('signalHistoryList');
+      list.innerHTML = signalHistory.map(s => `
+        <div class="t-sh-item">
+          <div class="t-sh-symbol">${s.symbol}</div>
+          <div class="t-sh-action action-${s.action.toLowerCase()}">${s.action}</div>
+          <div class="t-sh-label">${s.label}</div>
+          <div class="t-sh-conf">${s.conf}%</div>
+          <div class="t-sh-time">${s.time}</div>
+        </div>`).join('');
+    }
+
+    document.getElementById('generateSignalBtn').addEventListener('click', generateSignal);
+    document.getElementById('generateSignalBtn2').addEventListener('click', generateSignal);
+
+    // Screener
+    document.getElementById('runScreenerBtn').addEventListener('click', async () => {
+      const count = parseInt(document.getElementById('screenerCount').value);
+      const btn = document.getElementById('runScreenerBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Scanning...';
+      const results = document.getElementById('screenerResults');
+      results.innerHTML = '<div class="t-screener-loading"><i class="fa-solid fa-spinner fa-spin"></i> Running AI screener across ' + count + ' stocks...</div>';
+
+      try {
+        const selected = stocks.slice(0, count);
+        const rows = await Promise.allSettled(selected.map(async s => {
+          try {
+            const fd = new FormData();
+            fd.append('symbol', s.symbol);
+            fd.append('steps', '3');
+            const res = await fetch('/forecast', { method: 'POST', body: fd });
+            const d = await res.json();
+            return { symbol: s.symbol, label: d.label, confidence: d.confidence, regime: d.market_regime };
+          } catch { return null; }
+        }));
+
+        const valid = rows.map(r => r.value).filter(Boolean);
+        results.innerHTML = `
+          <div class="t-screener-header">
+            <span>Symbol</span><span>Signal</span><span>Action</span><span>Confidence</span><span>Regime</span>
+          </div>
+          ${valid.map(r => {
+            const action = r.label === 'Uptrend' ? 'BUY' : r.label === 'Downtrend' ? 'SELL' : 'HOLD';
+            return `<div class="t-screener-row">
+              <span class="t-screener-symbol">${r.symbol}</span>
+              <span class="t-screener-label ${r.label?.toLowerCase()}">${r.label}</span>
+              <span class="t-screener-action action-${action.toLowerCase()}">${action}</span>
+              <span class="t-screener-conf">${(Number(r.confidence||0)*100).toFixed(1)}%</span>
+              <span class="t-screener-regime">${r.regime || 'â€”'}</span>
+            </div>`;
+          }).join('')}`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-radar"></i> Run Screener';
+      }
+    });
+  </script>
+</body>
+</html>
+
+

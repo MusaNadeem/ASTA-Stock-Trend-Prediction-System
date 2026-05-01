@@ -1,0 +1,470 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portfolio â€” ASTA Terminal</title>
+  <meta name="description" content="AI-driven portfolio simulator and backtesting tool for PSX stocks." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=2" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="terminal-body">
+
+  <nav class="t-sidebar" id="tSidebar">
+    <div class="t-sidebar-logo">
+      <a href="/" class="t-logo-link"><span class="logo-mark">Î›</span><span class="logo-text">ASTA Terminal</span></a>
+    </div>
+    <ul class="t-nav-list">
+      <li><a href="/dashboard" class="t-nav-link"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a></li>
+      <li><a href="/charts" class="t-nav-link"><i class="fa-solid fa-chart-line"></i><span>Charts</span></a></li>
+      <li><a href="/signals" class="t-nav-link"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI Signals</span></a></li>
+      <li><a href="/market" class="t-nav-link"><i class="fa-solid fa-bolt"></i><span>Market Feed</span></a></li>
+      <li><a href="/portfolio" class="t-nav-link active"><i class="fa-solid fa-wallet"></i><span>Portfolio</span></a></li>
+      <li><a href="/insights" class="t-nav-link"><i class="fa-solid fa-newspaper"></i><span>Insights</span></a></li>
+    </ul>
+    <div class="t-sidebar-bottom">
+      <div class="t-live-indicator"><span class="live-dot"></span><span>LIVE</span></div>
+    </div>
+  </nav>
+
+  <main class="t-main">
+    <header class="t-topbar">
+      <div class="t-topbar-left">
+        <button class="t-sidebar-toggle" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
+        <div class="t-topbar-title">
+          <h1>Portfolio</h1>
+          <span>AI-driven trading simulation and performance tracking</span>
+        </div>
+      </div>
+      <div class="t-topbar-right">
+        <div class="t-price-chip">
+          <span class="t-price-label">Virtual Cash</span>
+          <strong id="portfolioCashDisplay">$10,000.00</strong>
+        </div>
+      </div>
+    </header>
+
+    <div class="t-page-content">
+
+      <!-- Portfolio KPIs -->
+      <section class="t-section">
+        <div class="t-portfolio-kpi-row">
+          <div class="t-card t-kpi-card">
+            <span>Total Value</span>
+            <strong id="kpiTotalValue">$10,000.00</strong>
+            <div class="t-kpi-sub">Cash + Positions</div>
+          </div>
+          <div class="t-card t-kpi-card">
+            <span>Unrealized P&L</span>
+            <strong id="kpiPnl">$0.00</strong>
+            <div class="t-kpi-change" id="kpiPnlPct">0.00%</div>
+          </div>
+          <div class="t-card t-kpi-card">
+            <span>Open Positions</span>
+            <strong id="kpiPositions">0</strong>
+            <div class="t-kpi-sub">Active holdings</div>
+          </div>
+          <div class="t-card t-kpi-card">
+            <span>Total Trades</span>
+            <strong id="kpiTrades">0</strong>
+            <div class="t-kpi-sub">Buy / Sell orders</div>
+          </div>
+          <div class="t-card t-kpi-card">
+            <span>Win Rate</span>
+            <strong id="kpiWinRate">â€”</strong>
+            <div class="t-kpi-sub">Profitable closes</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trade Entry -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-arrow-trend-up"></i> Execute Trade</h2>
+        </div>
+        <div class="t-trade-grid">
+          <div class="t-card">
+            <h3 class="t-card-title">New Position</h3>
+            <div class="t-form-group">
+              <label class="t-label">Stock Symbol</label>
+              <select id="portfolioStockSelect" class="t-select"></select>
+            </div>
+            <div class="t-form-group">
+              <label class="t-label">Trade Type</label>
+              <div class="t-trade-type-toggle">
+                <button class="t-trade-type-btn active" id="buyTypeBtn" data-type="buy">
+                  <i class="fa-solid fa-arrow-trend-up"></i> BUY
+                </button>
+                <button class="t-trade-type-btn" id="sellTypeBtn" data-type="sell">
+                  <i class="fa-solid fa-arrow-trend-down"></i> SELL
+                </button>
+              </div>
+            </div>
+            <div class="t-form-group">
+              <label class="t-label">Quantity</label>
+              <input id="portfolioQtyInput" type="number" min="1" step="1" value="10" class="t-input" />
+            </div>
+            <div class="t-form-group">
+              <label class="t-label">Entry Price (leave blank for current)</label>
+              <input id="portfolioEntryInput" type="number" min="0" step="0.01" placeholder="Auto" class="t-input" />
+            </div>
+            <div class="t-trade-summary" id="tradeSummary">
+              <div class="t-ts-row"><span>Estimated Cost</span><strong id="tradeEstCost">â€”</strong></div>
+              <div class="t-ts-row"><span>AI Signal</span><strong id="tradeAISignal">Load data first</strong></div>
+            </div>
+            <div class="t-action-buttons">
+              <button id="simulateBuyBtn" class="t-btn t-btn-accent t-btn-full"><i class="fa-solid fa-arrow-trend-up"></i> Execute Trade</button>
+              <button id="resetPortfolioBtn" class="t-btn t-btn-outline"><i class="fa-solid fa-rotate-left"></i> Reset All</button>
+            </div>
+          </div>
+
+          <div class="t-card t-card-wide">
+            <h3 class="t-card-title">Portfolio Performance Chart</h3>
+            <canvas id="portfolioChart" style="max-height:240px"></canvas>
+            <div class="t-portfolio-stats" id="portfolioStats"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Positions Table -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-list"></i> Open Positions</h2>
+        </div>
+        <div class="t-card">
+          <div class="t-positions-table" id="positionsTable">
+            <div class="t-positions-empty"><i class="fa-solid fa-wallet"></i> No open positions. Execute a trade to begin.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trade History -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-clock-rotate-left"></i> Trade History</h2>
+        </div>
+        <div class="t-card">
+          <div class="t-trade-history" id="tradeHistory">
+            <div class="t-positions-empty"><i class="fa-solid fa-clock-rotate-left"></i> No trades yet.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Backtesting -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-flask"></i> Strategy Backtester</h2>
+          <div class="t-section-meta">Run the ASTA signal strategy on historical data</div>
+        </div>
+        <div class="t-backtest-grid">
+          <div class="t-card">
+            <h3 class="t-card-title">Backtest Configuration</h3>
+            <div class="t-form-group">
+              <label class="t-label">Strategy</label>
+              <select id="btStrategy" class="t-select">
+                <option value="asta_signal">ASTA Signal Strategy (follow predictions)</option>
+                <option value="momentum">Momentum Strategy (trend following)</option>
+                <option value="contrarian">Contrarian Strategy (fade extremes)</option>
+              </select>
+            </div>
+            <div class="t-form-group">
+              <label class="t-label">Initial Capital</label>
+              <input id="btCapital" type="number" value="10000" min="1000" step="1000" class="t-input" />
+            </div>
+            <div class="t-form-group">
+              <label class="t-label">Trade Size (%)</label>
+              <input id="btTradeSize" type="number" value="20" min="5" max="100" class="t-input" />
+            </div>
+            <button id="runBacktestBtn" class="t-btn t-btn-primary t-btn-full"><i class="fa-solid fa-flask"></i> Run Backtest</button>
+          </div>
+
+          <div class="t-card t-card-wide" id="backtestResults">
+            <h3 class="t-card-title">Backtest Results</h3>
+            <div class="t-backtest-placeholder">
+              <i class="fa-solid fa-flask"></i>
+              <p>Configure and run a backtest to see simulated performance metrics.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div id="toastContainer" class="t-toast-container" aria-live="polite"></div>
+
+  <script src="/static/app.js?v=2"></script>
+  <script>
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      document.getElementById('tSidebar').classList.toggle('mobile-open');
+    });
+
+    function showToast(msg, tone='info') {
+      const c = document.getElementById('toastContainer');
+      const t = document.createElement('div'); t.className = `t-toast ${tone}`; t.textContent = msg;
+      c.appendChild(t); setTimeout(() => t.classList.add('visible'), 20);
+      setTimeout(() => { t.classList.remove('visible'); setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    let portfolio = { cash: 10000, positions: [], history: [], tradeCount: 0, winCount: 0 };
+    let pnlChart = null;
+    let currentPrice = 0;
+    let aiSignal = null;
+    let tradeType = 'buy';
+
+    fetch('/stocks').then(r => r.json()).then(d => {
+      const sel = document.getElementById('portfolioStockSelect');
+      sel.innerHTML = d.stocks.map(s => `<option value="${s.symbol}">${s.symbol}</option>`).join('');
+      sel.addEventListener('change', loadStockData);
+      loadStockData();
+    });
+
+    async function loadStockData() {
+      const symbol = document.getElementById('portfolioStockSelect').value;
+      if (!symbol) return;
+      try {
+        const [dataRes, forecastRes] = await Promise.all([
+          fetch(`/data?symbol=${encodeURIComponent(symbol)}`),
+          fetch('/forecast', { method: 'POST', body: (() => { const f = new FormData(); f.append('symbol', symbol); f.append('steps', '3'); return f; })() }),
+        ]);
+        const data = await dataRes.json();
+        const forecast = await forecastRes.json();
+        currentPrice = Number(data.current_price || 0);
+        aiSignal = forecast;
+        const action = forecast.label === 'Uptrend' ? 'BUY' : forecast.label === 'Downtrend' ? 'SELL' : 'HOLD';
+        document.getElementById('tradeAISignal').textContent = `${action} â€” ${(Number(forecast.confidence||0)*100).toFixed(1)}% conf.`;
+        document.getElementById('tradeAISignal').className = `action-${action.toLowerCase()}`;
+        updateTradeSummary();
+      } catch {}
+    }
+
+    function updateTradeSummary() {
+      const qty = parseInt(document.getElementById('portfolioQtyInput').value) || 0;
+      const entry = parseFloat(document.getElementById('portfolioEntryInput').value) || currentPrice;
+      const cost = qty * entry;
+      document.getElementById('tradeEstCost').textContent = cost > 0 ? `$${cost.toFixed(2)}` : 'â€”';
+    }
+
+    document.getElementById('portfolioQtyInput').addEventListener('input', updateTradeSummary);
+    document.getElementById('portfolioEntryInput').addEventListener('input', updateTradeSummary);
+
+    // Trade type toggle
+    document.querySelectorAll('.t-trade-type-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.t-trade-type-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        tradeType = btn.dataset.type;
+        document.getElementById('simulateBuyBtn').innerHTML = tradeType === 'buy'
+          ? '<i class="fa-solid fa-arrow-trend-up"></i> Execute Buy'
+          : '<i class="fa-solid fa-arrow-trend-down"></i> Execute Sell';
+        document.getElementById('simulateBuyBtn').className = `t-btn t-btn-full ${tradeType === 'buy' ? 't-btn-accent' : 't-btn-danger'}`;
+      });
+    });
+
+    document.getElementById('simulateBuyBtn').addEventListener('click', () => {
+      const symbol = document.getElementById('portfolioStockSelect').value;
+      const qty = parseInt(document.getElementById('portfolioQtyInput').value) || 1;
+      const entry = parseFloat(document.getElementById('portfolioEntryInput').value) || currentPrice;
+      if (!entry) { showToast('Load stock data first to get current price.', 'warning'); return; }
+
+      if (tradeType === 'buy') {
+        const cost = qty * entry;
+        if (cost > portfolio.cash) { showToast('Insufficient virtual cash.', 'error'); return; }
+        portfolio.cash -= cost;
+        portfolio.positions.push({ symbol, qty, entry, type: 'buy', timestamp: new Date().toLocaleTimeString() });
+        portfolio.tradeCount++;
+        portfolio.history.push({ type: 'BUY', symbol, qty, price: entry, time: new Date().toLocaleTimeString() });
+        showToast(`Bought ${qty} Ã— ${symbol} @ ${entry.toFixed(2)}`, 'success');
+      } else {
+        const pos = portfolio.positions.find(p => p.symbol === symbol && p.type === 'buy');
+        if (!pos) { showToast('No open position for this stock.', 'warning'); return; }
+        const pnl = (entry - pos.entry) * pos.qty;
+        portfolio.cash += pos.qty * entry;
+        portfolio.positions = portfolio.positions.filter(p => p !== pos);
+        if (pnl > 0) portfolio.winCount++;
+        portfolio.tradeCount++;
+        portfolio.history.push({ type: 'SELL', symbol, qty: pos.qty, price: entry, pnl, time: new Date().toLocaleTimeString() });
+        showToast(`Sold ${pos.qty} Ã— ${symbol} @ ${entry.toFixed(2)} | P&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`, pnl >= 0 ? 'success' : 'error');
+      }
+      updatePortfolioDisplay();
+    });
+
+    document.getElementById('resetPortfolioBtn').addEventListener('click', () => {
+      portfolio = { cash: 10000, positions: [], history: [], tradeCount: 0, winCount: 0 };
+      if (pnlChart) { pnlChart.destroy(); pnlChart = null; }
+      updatePortfolioDisplay();
+      showToast('Portfolio reset to $10,000', 'info');
+    });
+
+    function updatePortfolioDisplay() {
+      const posValue = portfolio.positions.reduce((t, p) => t + p.qty * currentPrice, 0);
+      const invested = portfolio.positions.reduce((t, p) => t + p.qty * p.entry, 0);
+      const pnl = posValue - invested;
+      const total = portfolio.cash + posValue;
+      const pnlPct = invested > 0 ? (pnl / invested * 100).toFixed(2) : '0.00';
+      const winRate = portfolio.tradeCount > 0 ? ((portfolio.winCount / portfolio.tradeCount) * 100).toFixed(1) + '%' : 'â€”';
+
+      document.getElementById('portfolioCashDisplay').textContent = '$' + portfolio.cash.toFixed(2);
+      document.getElementById('kpiTotalValue').textContent = '$' + total.toFixed(2);
+      document.getElementById('kpiPnl').textContent = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2);
+      document.getElementById('kpiPnl').className = 'strong ' + (pnl >= 0 ? 'positive' : 'negative');
+      document.getElementById('kpiPnlPct').textContent = (pnlPct >= 0 ? '+' : '') + pnlPct + '%';
+      document.getElementById('kpiPnlPct').className = 't-kpi-change ' + (pnlPct >= 0 ? 'positive' : 'negative');
+      document.getElementById('kpiPositions').textContent = portfolio.positions.length;
+      document.getElementById('kpiTrades').textContent = portfolio.tradeCount;
+      document.getElementById('kpiWinRate').textContent = winRate;
+
+      // Positions table
+      const posTable = document.getElementById('positionsTable');
+      posTable.innerHTML = portfolio.positions.length ? `
+        <div class="t-pos-header"><span>Symbol</span><span>Qty</span><span>Entry</span><span>Current</span><span>P&L</span><span>Return</span></div>
+        ${portfolio.positions.map(p => {
+          const curVal = p.qty * currentPrice;
+          const posInvested = p.qty * p.entry;
+          const posPnl = curVal - posInvested;
+          const posRet = (posPnl / posInvested * 100).toFixed(2);
+          return `<div class="t-pos-row ${posPnl >= 0 ? 'profit' : 'loss'}">
+            <span class="t-pos-symbol">${p.symbol}</span>
+            <span>${p.qty}</span>
+            <span>${p.entry.toFixed(2)}</span>
+            <span>${currentPrice > 0 ? currentPrice.toFixed(2) : 'â€”'}</span>
+            <span class="${posPnl >= 0 ? 'positive' : 'negative'}">${posPnl >= 0 ? '+' : ''}$${posPnl.toFixed(2)}</span>
+            <span class="${posRet >= 0 ? 'positive' : 'negative'}">${posRet}%</span>
+          </div>`;
+        }).join('')}` : '<div class="t-positions-empty"><i class="fa-solid fa-wallet"></i> No open positions</div>';
+
+      // Trade history
+      const hist = document.getElementById('tradeHistory');
+      hist.innerHTML = portfolio.history.length ? `
+        <div class="t-pos-header"><span>Type</span><span>Symbol</span><span>Qty</span><span>Price</span><span>P&L</span><span>Time</span></div>
+        ${[...portfolio.history].reverse().map(t => `
+          <div class="t-trade-hist-row">
+            <span class="t-trade-type action-${t.type.toLowerCase()}">${t.type}</span>
+            <span>${t.symbol}</span>
+            <span>${t.qty}</span>
+            <span>${t.price.toFixed(2)}</span>
+            <span class="${t.pnl !== undefined ? (t.pnl >= 0 ? 'positive' : 'negative') : ''}">${t.pnl !== undefined ? (t.pnl >= 0 ? '+' : '') + '$' + t.pnl.toFixed(2) : 'â€”'}</span>
+            <span>${t.time}</span>
+          </div>`).join('')}` : '<div class="t-positions-empty"><i class="fa-solid fa-clock-rotate-left"></i> No trades yet</div>';
+
+      // Portfolio summary for the chart section
+      const statsEl = document.getElementById('portfolioStats');
+      statsEl.innerHTML = `
+        <div class="t-summary-grid">
+          <div class="t-summary-item"><span>Cash</span><strong>$${portfolio.cash.toFixed(2)}</strong></div>
+          <div class="t-summary-item"><span>Invested</span><strong>$${invested.toFixed(2)}</strong></div>
+          <div class="t-summary-item"><span>Unrealized P&L</span><strong class="${pnl>=0?'positive':'negative'}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</strong></div>
+          <div class="t-summary-item"><span>Return</span><strong class="${pnlPct>=0?'positive':'negative'}">${pnlPct>=0?'+':''}${pnlPct}%</strong></div>
+        </div>`;
+
+      // P&L Chart
+      const ctx = document.getElementById('portfolioChart').getContext('2d');
+      const pnlHistory = portfolio.history.map((_, i) => {
+        const pts = portfolio.history.slice(0, i + 1);
+        return pts.filter(t => t.pnl !== undefined).reduce((s, t) => s + t.pnl, 0);
+      });
+      if (pnlChart) {
+        pnlChart.data.datasets[0].data = pnlHistory;
+        pnlChart.data.labels = pnlHistory.map((_, i) => `Trade ${i+1}`);
+        pnlChart.update();
+      } else if (pnlHistory.length) {
+        pnlChart = new Chart(ctx, {
+          type: 'line',
+          data: {
+            labels: pnlHistory.map((_, i) => `Trade ${i+1}`),
+            datasets: [{ label: 'Cumulative P&L', data: pnlHistory, borderColor: '#5eead4', backgroundColor: 'rgba(94,234,212,0.12)', borderWidth: 2, tension: 0.3, fill: true, pointRadius: 4 }],
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { labels: { color: '#e8eef7' } } },
+            scales: {
+              x: { ticks: { color: '#9db0d0' }, grid: { color: 'rgba(148,163,184,0.08)' } },
+              y: { ticks: { color: '#9db0d0' }, grid: { color: 'rgba(148,163,184,0.08)' } },
+            },
+          },
+        });
+      }
+    }
+
+    // Backtester
+    document.getElementById('runBacktestBtn').addEventListener('click', async () => {
+      const symbol = document.getElementById('portfolioStockSelect').value;
+      const capital = parseFloat(document.getElementById('btCapital').value) || 10000;
+      const tradeSize = parseFloat(document.getElementById('btTradeSize').value) / 100;
+      const strategy = document.getElementById('btStrategy').value;
+      const btn = document.getElementById('runBacktestBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Running...';
+
+      try {
+        const [dataRes, forecastRes] = await Promise.all([
+          fetch(`/data?symbol=${encodeURIComponent(symbol)}`),
+          fetch('/forecast', { method: 'POST', body: (() => { const f = new FormData(); f.append('symbol', symbol); f.append('steps', '7'); return f; })() }),
+        ]);
+        const data = await dataRes.json();
+        const forecast = await forecastRes.json();
+
+        const closes = data.recent_close_series || [];
+        let btCash = capital, btPos = 0, btEntry = 0;
+        let trades = 0, wins = 0;
+        const equity = [capital];
+
+        closes.forEach((price, i) => {
+          if (i < 5) return;
+          const prevPrice = closes[i - 1];
+          let signal = 'hold';
+          if (strategy === 'asta_signal') {
+            signal = forecast.label === 'Uptrend' ? 'buy' : forecast.label === 'Downtrend' ? 'sell' : 'hold';
+          } else if (strategy === 'momentum') {
+            signal = price > prevPrice ? 'buy' : price < prevPrice ? 'sell' : 'hold';
+          } else if (strategy === 'contrarian') {
+            signal = price < prevPrice ? 'buy' : price > prevPrice ? 'sell' : 'hold';
+          }
+
+          if (signal === 'buy' && btPos === 0) {
+            const cost = btCash * tradeSize;
+            btPos = cost / price;
+            btEntry = price;
+            btCash -= cost;
+            trades++;
+          } else if (signal === 'sell' && btPos > 0) {
+            const proceeds = btPos * price;
+            if (price > btEntry) wins++;
+            btCash += proceeds;
+            btPos = 0;
+            trades++;
+          }
+          equity.push(btCash + btPos * price);
+        });
+
+        const finalValue = btCash + btPos * (closes[closes.length - 1] || 0);
+        const totalReturn = ((finalValue - capital) / capital * 100).toFixed(2);
+        const winRate = trades > 0 ? ((wins / (trades/2)) * 100).toFixed(1) : 0;
+
+        const resultsEl = document.getElementById('backtestResults');
+        resultsEl.innerHTML = `
+          <h3 class="t-card-title">Backtest Results â€” ${symbol} â€” ${strategy}</h3>
+          <div class="t-backtest-results-grid">
+            <div class="t-bt-metric"><span>Initial Capital</span><strong>$${capital.toFixed(0)}</strong></div>
+            <div class="t-bt-metric"><span>Final Value</span><strong class="${finalValue >= capital ? 'positive' : 'negative'}">$${finalValue.toFixed(2)}</strong></div>
+            <div class="t-bt-metric"><span>Total Return</span><strong class="${totalReturn >= 0 ? 'positive' : 'negative'}">${totalReturn >= 0 ? '+' : ''}${totalReturn}%</strong></div>
+            <div class="t-bt-metric"><span>Total Trades</span><strong>${trades}</strong></div>
+            <div class="t-bt-metric"><span>Win Rate</span><strong>${winRate}%</strong></div>
+            <div class="t-bt-metric"><span>Strategy</span><strong>${strategy.replace(/_/g,' ')}</strong></div>
+          </div>`;
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-flask"></i> Run Backtest';
+      }
+    });
+
+    updatePortfolioDisplay();
+  </script>
+</body>
+</html>
+
+

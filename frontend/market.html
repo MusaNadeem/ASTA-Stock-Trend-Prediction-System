@@ -1,0 +1,420 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Market Feed â€” ASTA Terminal</title>
+  <meta name="description" content="Real-time market feed with price updates, order flow, volatility spikes, and regime detection." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=2" />
+</head>
+<body class="terminal-body">
+
+  <nav class="t-sidebar" id="tSidebar">
+    <div class="t-sidebar-logo">
+      <a href="/" class="t-logo-link"><span class="logo-mark">Î›</span><span class="logo-text">ASTA Terminal</span></a>
+    </div>
+    <div class="t-sidebar-stock">
+      <label class="t-sidebar-label">Active Stock</label>
+      <select id="marketStockSelect" class="t-sidebar-select"></select>
+    </div>
+    <div class="t-sidebar-regime">
+      <div class="regime-badge" id="mktRegimeBadge">Sideways market</div>
+    </div>
+    <ul class="t-nav-list">
+      <li><a href="/dashboard" class="t-nav-link"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a></li>
+      <li><a href="/charts" class="t-nav-link"><i class="fa-solid fa-chart-line"></i><span>Charts</span></a></li>
+      <li><a href="/signals" class="t-nav-link"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI Signals</span></a></li>
+      <li><a href="/market" class="t-nav-link active"><i class="fa-solid fa-bolt"></i><span>Market Feed</span></a></li>
+      <li><a href="/portfolio" class="t-nav-link"><i class="fa-solid fa-wallet"></i><span>Portfolio</span></a></li>
+      <li><a href="/insights" class="t-nav-link"><i class="fa-solid fa-newspaper"></i><span>Insights</span></a></li>
+    </ul>
+    <div class="t-sidebar-bottom">
+      <div class="t-live-indicator"><span class="live-dot"></span><span>LIVE</span></div>
+    </div>
+  </nav>
+
+  <main class="t-main">
+    <header class="t-topbar">
+      <div class="t-topbar-left">
+        <button class="t-sidebar-toggle" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
+        <div class="t-topbar-title">
+          <h1>Market Feed</h1>
+          <span>Real-time price, volume, regime, and order flow data</span>
+        </div>
+      </div>
+      <div class="t-topbar-right">
+        <button id="refreshMarketBtn" class="t-btn t-btn-primary"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        <div class="t-live-chip"><span class="live-dot"></span> LIVE</div>
+      </div>
+    </header>
+
+    <div class="t-page-content">
+
+      <!-- Live Stats Row -->
+      <section class="t-section">
+        <div class="t-market-stats-row">
+          <div class="t-card t-stat-card">
+            <div class="t-stat-icon price"><i class="fa-solid fa-dollar-sign"></i></div>
+            <div class="t-stat-content">
+              <span>Current Price</span>
+              <strong id="mktCurrentPrice">â€”</strong>
+              <div class="t-stat-change" id="mktPriceChange">â€”</div>
+            </div>
+          </div>
+          <div class="t-card t-stat-card">
+            <div class="t-stat-icon volume"><i class="fa-solid fa-chart-bar"></i></div>
+            <div class="t-stat-content">
+              <span>Trading Volume</span>
+              <strong id="mktVolume">â€”</strong>
+            </div>
+          </div>
+          <div class="t-card t-stat-card">
+            <div class="t-stat-icon high"><i class="fa-solid fa-arrow-up"></i></div>
+            <div class="t-stat-content">
+              <span>Period High</span>
+              <strong id="mktHigh">â€”</strong>
+            </div>
+          </div>
+          <div class="t-card t-stat-card">
+            <div class="t-stat-icon low"><i class="fa-solid fa-arrow-down"></i></div>
+            <div class="t-stat-content">
+              <span>Period Low</span>
+              <strong id="mktLow">â€”</strong>
+            </div>
+          </div>
+          <div class="t-card t-stat-card">
+            <div class="t-stat-icon regime"><i class="fa-solid fa-compass"></i></div>
+            <div class="t-stat-content">
+              <span>Market Regime</span>
+              <strong id="mktRegime">â€”</strong>
+            </div>
+          </div>
+          <div class="t-card t-stat-card">
+            <div class="t-stat-icon slope"><i class="fa-solid fa-chart-line"></i></div>
+            <div class="t-stat-content">
+              <span>Trend Slope</span>
+              <strong id="mktSlope">â€”</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- OHLCV Data Stream + Volatility -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-table"></i> OHLCV Data Stream</h2>
+          <div class="t-section-meta">Last 60 trading periods (sliding window)</div>
+        </div>
+        <div class="t-market-two-col">
+          <div class="t-card">
+            <h3 class="t-card-title">Price Stream (Recent Periods)</h3>
+            <div class="t-data-stream" id="priceStream">
+              <div class="t-stream-empty"><i class="fa-solid fa-rotate"></i> Select a stock and click Refresh</div>
+            </div>
+          </div>
+
+          <div class="t-card">
+            <h3 class="t-card-title">Volatility Anomaly Detector</h3>
+            <div class="t-volatility-list" id="volatilityList">
+              <div class="t-stream-empty"><i class="fa-solid fa-wave-square"></i> No data yet</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Market Regime Detector -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-compass"></i> Market Regime Analysis</h2>
+        </div>
+        <div class="t-regime-grid">
+          <div class="t-card t-regime-card" id="regimeCard">
+            <div class="t-regime-icon"><i class="fa-solid fa-compass"></i></div>
+            <div class="t-regime-info">
+              <h3 id="regimeCardTitle">â€”</h3>
+              <p id="regimeCardDesc">Select a stock and refresh to detect the current market regime.</p>
+            </div>
+            <div class="t-regime-badge-lg" id="regimeCardBadge">â€”</div>
+          </div>
+          <div class="t-card">
+            <h3 class="t-card-title">Regime Interpretation</h3>
+            <div class="t-regime-guide">
+              <div class="t-regime-guide-item bull">
+                <i class="fa-solid fa-circle-arrow-up"></i>
+                <div><strong>Bull Market</strong><p>Strong upward momentum. ASTA models typically assign higher uptrend probabilities.</p></div>
+              </div>
+              <div class="t-regime-guide-item bear">
+                <i class="fa-solid fa-circle-arrow-down"></i>
+                <div><strong>Bear Market</strong><p>Sustained downward pressure. Higher downtrend probabilities from the MHVP voting system.</p></div>
+              </div>
+              <div class="t-regime-guide-item sideways">
+                <i class="fa-solid fa-arrows-left-right"></i>
+                <div><strong>Sideways Market</strong><p>Low trend momentum. Neutral predictions dominate. Watch for breakout signals.</p></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tape / Order Flow -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-tape"></i> Order Book (Tape Analysis)</h2>
+          <div class="t-section-meta">Simulated order flow based on OHLCV data</div>
+        </div>
+        <div class="t-order-book-grid">
+          <div class="t-card">
+            <h3 class="t-card-title t-bid-title"><i class="fa-solid fa-arrow-up"></i> Bids (Buy Side)</h3>
+            <div class="t-order-book" id="bidBook">
+              <div class="t-ob-header"><span>Price</span><span>Volume</span><span>Depth</span></div>
+              <div class="t-ob-empty">Load data to view bids</div>
+            </div>
+          </div>
+          <div class="t-card">
+            <h3 class="t-card-title t-ask-title"><i class="fa-solid fa-arrow-down"></i> Asks (Sell Side)</h3>
+            <div class="t-order-book" id="askBook">
+              <div class="t-ob-header"><span>Price</span><span>Volume</span><span>Depth</span></div>
+              <div class="t-ob-empty">Load data to view asks</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Alerts Config -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-bell"></i> Smart Alerts</h2>
+          <div class="t-section-meta">Configure price and signal alerts</div>
+        </div>
+        <div class="t-alerts-config-grid">
+          <div class="t-card">
+            <h3 class="t-card-title">Price Alert</h3>
+            <div class="t-form-group">
+              <label class="t-label">Alert when price crosses</label>
+              <input id="priceAlertInput" type="number" class="t-input" placeholder="Enter target price" />
+            </div>
+            <div class="t-form-group">
+              <label class="t-label">Direction</label>
+              <select id="priceAlertDir" class="t-select">
+                <option value="above">Above threshold</option>
+                <option value="below">Below threshold</option>
+              </select>
+            </div>
+            <button id="setPriceAlertBtn" class="t-btn t-btn-primary t-btn-full"><i class="fa-solid fa-bell"></i> Set Alert</button>
+          </div>
+
+          <div class="t-card">
+            <h3 class="t-card-title">Volume Anomaly Alert</h3>
+            <div class="t-form-group">
+              <label class="t-label">Alert on volume spike multiplier</label>
+              <select id="volAlertMultiplier" class="t-select">
+                <option value="1.5">1.5x average</option>
+                <option value="2" selected>2x average</option>
+                <option value="3">3x average</option>
+              </select>
+            </div>
+            <button id="setVolAlertBtn" class="t-btn t-btn-accent t-btn-full"><i class="fa-solid fa-wave-square"></i> Enable Volume Alert</button>
+          </div>
+
+          <div class="t-card t-card-full">
+            <h3 class="t-card-title">Active Alerts</h3>
+            <div id="activeAlertsList" class="t-active-alerts">
+              <div class="t-stream-empty"><i class="fa-solid fa-bell-slash"></i> No active alerts</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div id="toastContainer" class="t-toast-container" aria-live="polite"></div>
+
+  <script>
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      document.getElementById('tSidebar').classList.toggle('mobile-open');
+    });
+
+    function showToast(msg, tone='info') {
+      const c = document.getElementById('toastContainer');
+      const t = document.createElement('div'); t.className = `t-toast ${tone}`; t.textContent = msg;
+      c.appendChild(t); setTimeout(() => t.classList.add('visible'), 20);
+      setTimeout(() => { t.classList.remove('visible'); setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    let activeAlerts = [];
+    let currentMarketData = null;
+
+    async function refreshMarketData() {
+      const symbol = document.getElementById('marketStockSelect').value;
+      if (!symbol) { showToast('Select a stock first.', 'warning'); return; }
+
+      const btn = document.getElementById('refreshMarketBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
+
+      try {
+        const [dataRes, regimeRes] = await Promise.all([
+          fetch(`/data?symbol=${encodeURIComponent(symbol)}`),
+          fetch(`/market-regime?symbol=${encodeURIComponent(symbol)}`),
+        ]);
+        const data = await dataRes.json();
+        const regime = await regimeRes.json();
+        currentMarketData = { ...data, ...regime };
+        renderMarketData(data, regime);
+        checkAlerts(data);
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Refresh';
+      }
+    }
+
+    function renderMarketData(data, regime) {
+      const closes = data.recent_close_series || [];
+      const highs = data.recent_high_series || [];
+      const lows = data.recent_low_series || [];
+      const opens = data.recent_open_series || [];
+      const vols = data.recent_volume_series || [];
+      const labels = data.recent_window_labels || data.recent_dates || [];
+      const volScores = data.volatility_scores || [];
+
+      // Stats
+      const last = closes[closes.length - 1] || 0;
+      const prev = closes[closes.length - 2] || last;
+      const change = ((last - prev) / prev * 100).toFixed(2);
+      document.getElementById('mktCurrentPrice').textContent = Number(last).toFixed(2);
+      const changeEl = document.getElementById('mktPriceChange');
+      changeEl.textContent = (change >= 0 ? '+' : '') + change + '%';
+      changeEl.className = 't-stat-change ' + (change >= 0 ? 'positive' : 'negative');
+      document.getElementById('mktVolume').textContent = Number(data.current_volume || vols[vols.length-1] || 0).toLocaleString();
+      document.getElementById('mktHigh').textContent = Number(Math.max(...highs)).toFixed(2);
+      document.getElementById('mktLow').textContent = Number(Math.min(...lows.filter(v => v > 0))).toFixed(2);
+      document.getElementById('mktRegime').textContent = regime.market_regime || 'â€”';
+      document.getElementById('mktRegimeBadge').textContent = regime.market_regime || 'Sideways market';
+      document.getElementById('mktSlope').textContent = regime.trend_slope_hint ? (regime.trend_slope_hint > 0 ? '+' : '') + Number(regime.trend_slope_hint).toFixed(4) : 'â€”';
+
+      // Price stream
+      const stream = document.getElementById('priceStream');
+      stream.innerHTML = [...closes].reverse().slice(0, 20).map((c, i) => {
+        const idx = closes.length - 1 - i;
+        const prevC = closes[idx - 1] || c;
+        const dir = c >= prevC ? 'up' : 'down';
+        return `<div class="t-stream-row ${dir}">
+          <span class="t-stream-label">${labels[idx] || 'T' + idx}</span>
+          <span class="t-stream-price">${Number(c).toFixed(2)}</span>
+          <span class="t-stream-vol">${Number(vols[idx] || 0).toLocaleString()}</span>
+          <span class="t-stream-dir"><i class="fa-solid fa-arrow-${dir}"></i></span>
+        </div>`;
+      }).join('');
+
+      // Volatility anomalies
+      const avgVol = volScores.reduce((a,b) => a + Number(b), 0) / volScores.length;
+      const anomalies = volScores.map((v, i) => ({ i, v: Number(v), label: labels[i] || `T${i}` }))
+        .filter(e => e.v > avgVol * 1.5)
+        .sort((a, b) => b.v - a.v)
+        .slice(0, 10);
+
+      const volList = document.getElementById('volatilityList');
+      volList.innerHTML = anomalies.length ? anomalies.map(a => `
+        <div class="t-vol-anomaly">
+          <div class="t-vol-label">${a.label}</div>
+          <div class="t-vol-bar-wrap">
+            <div class="t-vol-bar" style="width:${Math.min(100, (a.v / (avgVol * 3)) * 100)}%"></div>
+          </div>
+          <div class="t-vol-score">${a.v.toFixed(4)}</div>
+        </div>`).join('') : '<div class="t-stream-empty"><i class="fa-solid fa-check"></i> No significant volatility anomalies</div>';
+
+      // Regime card
+      const regimeTitle = regime.market_regime || 'Unknown';
+      const regimeCls = regimeTitle.toLowerCase().includes('bull') ? 'bull' : regimeTitle.toLowerCase().includes('bear') ? 'bear' : 'sideways';
+      document.getElementById('regimeCardTitle').textContent = regimeTitle;
+      document.getElementById('regimeCardDesc').textContent = `Trend slope: ${regime.trend_slope_hint ? (regime.trend_slope_hint > 0 ? '+' : '') + Number(regime.trend_slope_hint).toFixed(4) : 'N/A'} Â· Detected from ${closes.length} periods of price data`;
+      document.getElementById('regimeCard').className = 't-card t-regime-card regime-' + regimeCls;
+      document.getElementById('regimeCardBadge').textContent = regimeTitle;
+
+      // Order Book (simulated from OHLCV)
+      const midPrice = last;
+      const spread = midPrice * 0.001;
+      const bidBook = document.getElementById('bidBook');
+      const askBook = document.getElementById('askBook');
+      const bidRows = [0.998, 0.997, 0.995, 0.993, 0.991].map((f, i) => {
+        const p = (midPrice * f).toFixed(2);
+        const vol = Math.floor(Math.random() * 5000 + 1000);
+        const depth = Math.min(100, (i + 1) * 18 + Math.random() * 10);
+        return `<div class="t-ob-row bid">
+          <span>${p}</span><span>${vol.toLocaleString()}</span>
+          <div class="t-ob-depth bid" style="width:${depth}%"></div>
+        </div>`;
+      });
+      const askRows = [1.001, 1.002, 1.004, 1.006, 1.009].map((f, i) => {
+        const p = (midPrice * f).toFixed(2);
+        const vol = Math.floor(Math.random() * 5000 + 1000);
+        const depth = Math.min(100, (5 - i) * 18 + Math.random() * 10);
+        return `<div class="t-ob-row ask">
+          <span>${p}</span><span>${vol.toLocaleString()}</span>
+          <div class="t-ob-depth ask" style="width:${depth}%"></div>
+        </div>`;
+      });
+      bidBook.innerHTML = `<div class="t-ob-header"><span>Price</span><span>Volume</span><span>Depth</span></div>` + bidRows.join('');
+      askBook.innerHTML = `<div class="t-ob-header"><span>Price</span><span>Volume</span><span>Depth</span></div>` + askRows.join('');
+    }
+
+    function checkAlerts(data) {
+      const price = Number(data.current_price || 0);
+      activeAlerts.forEach(alert => {
+        if (alert.type === 'price') {
+          const triggered = (alert.dir === 'above' && price >= alert.threshold) || (alert.dir === 'below' && price <= alert.threshold);
+          if (triggered && !alert.fired) {
+            showToast(`ðŸ”” Price Alert: ${data.symbol} is ${alert.dir} ${alert.threshold}! (${price.toFixed(2)})`, 'warning');
+            alert.fired = true;
+          }
+        }
+      });
+    }
+
+    fetch('/stocks').then(r => r.json()).then(d => {
+      const sel = document.getElementById('marketStockSelect');
+      sel.innerHTML = d.stocks.map(s => `<option value="${s.symbol}">${s.symbol}</option>`).join('');
+      sel.addEventListener('change', refreshMarketData);
+      refreshMarketData();
+    });
+
+    document.getElementById('refreshMarketBtn').addEventListener('click', refreshMarketData);
+
+    document.getElementById('setPriceAlertBtn').addEventListener('click', () => {
+      const t = parseFloat(document.getElementById('priceAlertInput').value);
+      const dir = document.getElementById('priceAlertDir').value;
+      if (!t) { showToast('Enter a valid price.', 'warning'); return; }
+      activeAlerts.push({ type: 'price', threshold: t, dir, fired: false });
+      renderActiveAlerts();
+      showToast(`Price alert set: ${dir} ${t}`, 'success');
+    });
+
+    document.getElementById('setVolAlertBtn').addEventListener('click', () => {
+      const m = document.getElementById('volAlertMultiplier').value;
+      activeAlerts.push({ type: 'volume', multiplier: m });
+      renderActiveAlerts();
+      showToast(`Volume alert enabled: ${m}x average`, 'success');
+    });
+
+    function renderActiveAlerts() {
+      const list = document.getElementById('activeAlertsList');
+      list.innerHTML = activeAlerts.length ? activeAlerts.map((a, i) => `
+        <div class="t-active-alert-item">
+          <i class="fa-solid fa-bell"></i>
+          <span>${a.type === 'price' ? `Price ${a.dir} ${a.threshold}` : `Volume spike ${a.multiplier}x`}</span>
+          <button onclick="activeAlerts.splice(${i},1); renderActiveAlerts();" class="t-alert-remove"><i class="fa-solid fa-xmark"></i></button>
+        </div>`).join('') : '<div class="t-stream-empty"><i class="fa-solid fa-bell-slash"></i> No active alerts</div>';
+    }
+
+    // Auto-refresh every 30s
+    setInterval(refreshMarketData, 30000);
+  </script>
+</body>
+</html>
+
+

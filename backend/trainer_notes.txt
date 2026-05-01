@@ -1,0 +1,1 @@
+ASTA / TAPE / MHVP implementation notes are embedded in the backend modules; this file is intentionally left as a placeholder for coursework notes if needed.

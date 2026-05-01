@@ -1,0 +1,366 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Insights â€” ASTA Terminal</title>
+  <meta name="description" content="Pakistan market news, sentiment analysis, and AI-powered market context." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="/static/styles.css?v=2" />
+</head>
+<body class="terminal-body">
+
+  <nav class="t-sidebar" id="tSidebar">
+    <div class="t-sidebar-logo">
+      <a href="/" class="t-logo-link"><span class="logo-mark">Î›</span><span class="logo-text">ASTA Terminal</span></a>
+    </div>
+    <ul class="t-nav-list">
+      <li><a href="/dashboard" class="t-nav-link"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a></li>
+      <li><a href="/charts" class="t-nav-link"><i class="fa-solid fa-chart-line"></i><span>Charts</span></a></li>
+      <li><a href="/signals" class="t-nav-link"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI Signals</span></a></li>
+      <li><a href="/market" class="t-nav-link"><i class="fa-solid fa-bolt"></i><span>Market Feed</span></a></li>
+      <li><a href="/portfolio" class="t-nav-link"><i class="fa-solid fa-wallet"></i><span>Portfolio</span></a></li>
+      <li><a href="/insights" class="t-nav-link active"><i class="fa-solid fa-newspaper"></i><span>Insights</span></a></li>
+    </ul>
+    <div class="t-sidebar-bottom">
+      <div class="t-live-indicator"><span class="live-dot"></span><span>LIVE</span></div>
+    </div>
+  </nav>
+
+  <main class="t-main">
+    <header class="t-topbar">
+      <div class="t-topbar-left">
+        <button class="t-sidebar-toggle" id="sidebarToggle"><i class="fa-solid fa-bars"></i></button>
+        <div class="t-topbar-title">
+          <h1>Insights</h1>
+          <span>Pakistan market news, sentiment, and AI market context</span>
+        </div>
+      </div>
+      <div class="t-topbar-right">
+        <button id="refreshNewsBtn" class="t-btn t-btn-primary"><i class="fa-solid fa-rotate"></i> Refresh News</button>
+      </div>
+    </header>
+
+    <div class="t-page-content">
+
+      <!-- Sentiment Overview -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-face-smile"></i> Market Sentiment</h2>
+          <div class="t-section-meta">AI-analyzed from latest headlines</div>
+        </div>
+        <div class="t-sentiment-row">
+          <div class="t-card t-sentiment-card" id="sentimentCard">
+            <div class="t-sentiment-icon" id="sentimentIcon"><i class="fa-solid fa-spinner fa-spin"></i></div>
+            <div class="t-sentiment-text">
+              <h3 id="sentimentLabel">Analyzing...</h3>
+              <p id="sentimentDesc">Loading sentiment from Pakistan market news...</p>
+            </div>
+            <div class="t-sentiment-score-wrap">
+              <div class="t-sentiment-meter">
+                <div class="t-sentiment-bar" id="sentimentBar" style="width:50%"></div>
+              </div>
+              <div class="t-sentiment-ends">
+                <span>Bearish</span><span>Bullish</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="t-card">
+            <h3 class="t-card-title">Sentiment Breakdown</h3>
+            <div class="t-sentiment-breakdown" id="sentimentBreakdown">
+              <div class="t-sb-row">
+                <span><i class="fa-solid fa-circle-arrow-up" style="color:#86efac"></i> Bullish signals</span>
+                <strong id="sbBullish">â€”</strong>
+              </div>
+              <div class="t-sb-row">
+                <span><i class="fa-solid fa-circle-arrow-down" style="color:#fb7185"></i> Bearish signals</span>
+                <strong id="sbBearish">â€”</strong>
+              </div>
+              <div class="t-sb-row">
+                <span><i class="fa-solid fa-arrows-left-right" style="color:#fbbf24"></i> Neutral signals</span>
+                <strong id="sbNeutral">â€”</strong>
+              </div>
+              <div class="t-sb-row">
+                <span><i class="fa-solid fa-newspaper"></i> Total headlines</span>
+                <strong id="sbTotal">â€”</strong>
+              </div>
+            </div>
+          </div>
+
+          <div class="t-card">
+            <h3 class="t-card-title">AI Market Summary</h3>
+            <p id="aiSummaryText" class="t-ai-summary">
+              Loading AI summary from latest Pakistan market headlines...
+            </p>
+            <div class="t-summary-keywords" id="summaryKeywords"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- News Feed -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-newspaper"></i> Latest Pakistan Market Headlines</h2>
+          <div class="t-news-sources">
+            <span class="t-source-chip">Dawn Business</span>
+            <span class="t-source-chip">Express Tribune</span>
+          </div>
+        </div>
+        <div class="t-news-grid" id="newsFeed">
+          <div class="t-news-loading">
+            <i class="fa-solid fa-spinner fa-spin"></i> Fetching latest headlines...
+          </div>
+        </div>
+      </section>
+
+      <!-- Model Context -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-brain"></i> Model Architecture Insights</h2>
+          <div class="t-section-meta">Understand how the AI prediction engine works</div>
+        </div>
+        <div class="t-insights-explainer-grid">
+          <div class="t-card t-explainer-card">
+            <div class="t-explainer-header asta">
+              <span class="t-model-badge-tag asta">ASTA</span>
+              <h3>How ASTA Works</h3>
+            </div>
+            <div class="t-explainer-body">
+              <p>Adaptive Sparse Temporal Attention replaces dense O(TÂ²) attention with three candidate selection strategies:</p>
+              <ul class="t-explainer-list">
+                <li><strong>Local:</strong> The last k timesteps (recency bias)</li>
+                <li><strong>Log-sparse:</strong> Logarithmically spaced historical points</li>
+                <li><strong>Volatility:</strong> The highest-variance periods</li>
+              </ul>
+              <p>These are merged into a sparse attention mask, reducing computation to approximately O(T log T Ã— d).</p>
+              <div class="t-complexity-badge">O(T log T Ã— d) vs O(TÂ² Ã— d)</div>
+            </div>
+          </div>
+
+          <div class="t-card t-explainer-card">
+            <div class="t-explainer-header tape">
+              <span class="t-model-badge-tag tape">TAPE</span>
+              <h3>Trend-Aware Encoding</h3>
+            </div>
+            <div class="t-explainer-body">
+              <p>Standard positional encoding assigns positions 0â€¦T without market context. TAPE modifies this by:</p>
+              <ul class="t-explainer-list">
+                <li><strong>Momentum modulation:</strong> Scales encoding by rolling price momentum</li>
+                <li><strong>Volatility adjustment:</strong> Reduces position weights in high-variance periods</li>
+                <li><strong>Regime awareness:</strong> The model "knows" if the market is trending or ranging</li>
+              </ul>
+              <p>This helps the Transformer orient its attention relative to market phase rather than raw sequence position.</p>
+            </div>
+          </div>
+
+          <div class="t-card t-explainer-card">
+            <div class="t-explainer-header mhvp">
+              <span class="t-model-badge-tag mhvp">MHVP</span>
+              <h3>Multi-Horizon Voting</h3>
+            </div>
+            <div class="t-explainer-body">
+              <p>Three parallel classification heads predict trend for different time horizons:</p>
+              <ul class="t-explainer-list">
+                <li><strong>Short-term head:</strong> 1-step ahead prediction</li>
+                <li><strong>Mid-term head:</strong> 3-step ahead prediction</li>
+                <li><strong>Long-term head:</strong> 7-step ahead prediction</li>
+              </ul>
+              <p>Learned vote weights merge these into a single consensus. The weights are trained jointly via cross-entropy loss on each head plus a combined loss on the weighted vote target.</p>
+              <div class="t-complexity-badge">3-head ensemble â†’ weighted consensus</div>
+            </div>
+          </div>
+
+          <div class="t-card t-explainer-card">
+            <div class="t-explainer-header market">
+              <span class="t-model-badge-tag" style="background:#171717;border:1px solid #404040">Regime</span>
+              <h3>Market Regime Detection</h3>
+            </div>
+            <div class="t-explainer-body">
+              <p>The system computes market regime from the price series and volatility scores:</p>
+              <ul class="t-explainer-list">
+                <li><strong>Bull market:</strong> Positive trend slope, lower volatility, upward momentum</li>
+                <li><strong>Bear market:</strong> Negative trend slope, elevated volatility, downward momentum</li>
+                <li><strong>Sideways market:</strong> Near-zero slope, mixed volatility, no clear direction</li>
+              </ul>
+              <p>The regime badge updates on every data load and influences how the AI model weights its outputs.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PSX Context -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-building-columns"></i> PSX Market Context</h2>
+        </div>
+        <div class="t-context-grid">
+          <div class="t-card">
+            <h3 class="t-card-title">About the Dataset</h3>
+            <p>The ASTA Terminal uses historical OHLCV data for 500+ securities listed on the Pakistan Stock Exchange (PSX). Data includes equities, REITs, ETFs, modarabas, and more.</p>
+            <div class="t-dataset-stat">
+              <span>Stocks covered</span>
+              <strong id="contextStockCount">Loading...</strong>
+            </div>
+            <div class="t-dataset-stat">
+              <span>Data format</span>
+              <strong>OHLCV Â· CSV Â· Daily bars</strong>
+            </div>
+            <div class="t-dataset-stat">
+              <span>Window size (T)</span>
+              <strong>60 trading periods</strong>
+            </div>
+          </div>
+          <div class="t-card">
+            <h3 class="t-card-title">Trading Labels</h3>
+            <div class="t-label-guide">
+              <div class="t-lg-item up">
+                <div class="t-lg-dot up"></div>
+                <div>
+                  <strong>Uptrend</strong>
+                  <p>Close price rose above threshold from period T to T+H. Model predicts bullish continuation.</p>
+                </div>
+              </div>
+              <div class="t-lg-item down">
+                <div class="t-lg-dot down"></div>
+                <div>
+                  <strong>Downtrend</strong>
+                  <p>Close price fell below threshold. Model predicts bearish continuation. Consider defensive positioning.</p>
+                </div>
+              </div>
+              <div class="t-lg-item neutral">
+                <div class="t-lg-dot neutral"></div>
+                <div>
+                  <strong>Neutral</strong>
+                  <p>Price movement within threshold band. No strong directional signal. Monitor for breakout.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <div id="toastContainer" class="t-toast-container" aria-live="polite"></div>
+
+  <script>
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      document.getElementById('tSidebar').classList.toggle('mobile-open');
+    });
+
+    function showToast(msg, tone='info') {
+      const c = document.getElementById('toastContainer');
+      const t = document.createElement('div'); t.className = `t-toast ${tone}`; t.textContent = msg;
+      c.appendChild(t); setTimeout(() => t.classList.add('visible'), 20);
+      setTimeout(() => { t.classList.remove('visible'); setTimeout(() => t.remove(), 300); }, 3000);
+    }
+
+    // Bullish/bearish keyword lists
+    const bullishKw = ['gain','rise','surge','rally','growth','bull','up','positive','profit','record','strong','increase'];
+    const bearishKw = ['fall','drop','decline','loss','bear','down','negative','crisis','sell','slump','weak','decrease','risk'];
+
+    function analyzeSentiment(headlines) {
+      let bullish = 0, bearish = 0, neutral = 0;
+      const allText = headlines.map(h => (h.title || '').toLowerCase()).join(' ');
+      bullishKw.forEach(kw => { if (allText.includes(kw)) bullish++; });
+      bearishKw.forEach(kw => { if (allText.includes(kw)) bearish++; });
+      neutral = Math.max(0, headlines.length - bullish - bearish);
+      const total = bullish + bearish + neutral;
+      const score = total > 0 ? (bullish / (bullish + bearish + 0.01)) * 100 : 50;
+      return { bullish, bearish, neutral, total: headlines.length, score };
+    }
+
+    function getKeywords(headlines) {
+      const allWords = headlines.map(h => (h.title||'').toLowerCase().split(/\W+/)).flat();
+      const freq = {};
+      allWords.filter(w => w.length > 4).forEach(w => { freq[w] = (freq[w]||0) + 1; });
+      return Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0, 12).map(([w]) => w);
+    }
+
+    async function loadNews() {
+      const feed = document.getElementById('newsFeed');
+      feed.innerHTML = '<div class="t-news-loading"><i class="fa-solid fa-spinner fa-spin"></i> Fetching latest headlines...</div>';
+      try {
+        const res = await fetch('/news?limit=12');
+        const data = await res.json();
+        const items = Array.isArray(data.news) ? data.news : [];
+
+        if (!items.length) {
+          feed.innerHTML = '<div class="t-news-empty">No headlines available right now.</div>';
+          return;
+        }
+
+        // Render news cards
+        feed.innerHTML = items.map(item => {
+          const title = item.title || 'Untitled';
+          const titleLower = title.toLowerCase();
+          const isBull = bullishKw.some(kw => titleLower.includes(kw));
+          const isBear = bearishKw.some(kw => titleLower.includes(kw));
+          const tone = isBull ? 'bullish' : isBear ? 'bearish' : 'neutral';
+          const toneIcon = isBull ? 'â†‘' : isBear ? 'â†“' : 'â†’';
+          const toneLabel = isBull ? 'Bullish' : isBear ? 'Bearish' : 'Neutral';
+          return `<article class="t-news-card ${tone}">
+            <div class="t-news-card-header">
+              <span class="t-news-source">${item.source || 'News'}</span>
+              <span class="t-news-tone ${tone}">${toneIcon} ${toneLabel}</span>
+            </div>
+            <h4 class="t-news-title">${title}</h4>
+            <p class="t-news-date">${item.published_at || 'Recently published'}</p>
+            <a href="${item.link || '#'}" target="_blank" rel="noopener noreferrer" class="t-news-link">
+              Read full story <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            </a>
+          </article>`;
+        }).join('');
+
+        // Sentiment analysis
+        const sent = analyzeSentiment(items);
+        const sentCard = document.getElementById('sentimentCard');
+        const score = sent.score;
+        const sentLabel = score > 60 ? 'Bullish' : score < 40 ? 'Bearish' : 'Neutral';
+        const sentColor = score > 60 ? '#86efac' : score < 40 ? '#fb7185' : '#fbbf24';
+        document.getElementById('sentimentIcon').innerHTML = score > 60 ? '<i class="fa-solid fa-face-smile" style="color:#86efac"></i>' : score < 40 ? '<i class="fa-solid fa-face-frown" style="color:#fb7185"></i>' : '<i class="fa-solid fa-face-meh" style="color:#fbbf24"></i>';
+        document.getElementById('sentimentLabel').textContent = `Market Sentiment: ${sentLabel}`;
+        document.getElementById('sentimentDesc').textContent = `Based on ${items.length} Pakistan market headlines from Dawn Business and The Express Tribune.`;
+        document.getElementById('sentimentBar').style.width = score + '%';
+        document.getElementById('sentimentBar').style.background = `linear-gradient(90deg, ${sentColor}, ${sentColor}88)`;
+        document.getElementById('sbBullish').textContent = sent.bullish;
+        document.getElementById('sbBearish').textContent = sent.bearish;
+        document.getElementById('sbNeutral').textContent = sent.neutral;
+        document.getElementById('sbTotal').textContent = sent.total;
+
+        // AI Summary
+        const keywords = getKeywords(items);
+        const topKw = keywords.slice(0, 5).join(', ');
+        document.getElementById('aiSummaryText').textContent = `Pakistan market news is showing ${sentLabel.toLowerCase()} sentiment. Key themes include ${topKw}. ${score > 60 ? 'Positive momentum in headlines may support bullish AI signals.' : score < 40 ? 'Negative sentiment in headlines may reinforce downtrend predictions.' : 'Mixed headlines suggest continued sideways movement â€” monitor for catalyst events.'}`;
+        document.getElementById('summaryKeywords').innerHTML = keywords.map(kw => `<span class="t-kw-chip">${kw}</span>`).join('');
+
+      } catch (e) {
+        feed.innerHTML = '<div class="t-news-empty">Unable to load news. Check your connection.</div>';
+        document.getElementById('sentimentIcon').innerHTML = '<i class="fa-solid fa-circle-exclamation" style="color:#fb7185"></i>';
+        document.getElementById('sentimentLabel').textContent = 'News Unavailable';
+        document.getElementById('sentimentDesc').textContent = 'Could not load headlines. Sentiment analysis requires live news.';
+      }
+    }
+
+    // Stock count
+    fetch('/stocks').then(r => r.json()).then(d => {
+      const el = document.getElementById('contextStockCount');
+      if (el && d.stocks) el.textContent = d.stocks.length + ' PSX securities';
+    }).catch(() => {});
+
+    document.getElementById('refreshNewsBtn').addEventListener('click', () => {
+      loadNews();
+      showToast('Refreshing news feed...', 'info');
+    });
+
+    loadNews();
+  </script>
+</body>
+</html>
+
+
