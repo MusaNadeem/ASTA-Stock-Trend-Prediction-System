@@ -1,15 +1,9 @@
 let lineChart = null;
 let barChart = null;
-let portfolioChart = null;
 let latestChartData = { labels: [], values: [] };
 let loadedSymbol = "";
 let latestDashboardData = {};
 let latestForecastData = null;
-let portfolioState = {
-  cash: 10000,
-  positions: [],
-  history: [],
-};
 
 const stockSelect = document.getElementById("stockSelect");
 const fileInput = document.getElementById("fileInput");
@@ -35,8 +29,6 @@ const trainBtn = document.getElementById("trainBtn");
 const predictBtn = document.getElementById("predictBtn");
 const predictDateBtn = document.getElementById("predictDateBtn");
 const trainUploadedBtn = document.getElementById("trainUploadedBtn");
-const simulateBuyBtn = document.getElementById("simulateBuyBtn");
-const resetPortfolioBtn = document.getElementById("resetPortfolioBtn");
 const metricsPanel = document.getElementById("metrics");
 const statusBar = document.getElementById("statusBar");
 const dataStatusBar = document.getElementById("dataStatusBar");
@@ -49,11 +41,6 @@ const analysisGrid = document.getElementById("analysisGrid");
 const currentPriceValue = document.getElementById("currentPriceValue");
 const trendDirectionValue = document.getElementById("trendDirectionValue");
 const tradingVolumeValue = document.getElementById("tradingVolumeValue");
-const focusTimestepsPanel = document.getElementById("focusTimestepsPanel");
-const volatilitySpikesPanel = document.getElementById("volatilitySpikesPanel");
-const modelRuntimeGrid = document.getElementById("modelRuntimeGrid");
-const modelComplexityGrid = document.getElementById("modelComplexityGrid");
-const modelStatsGrid = document.getElementById("modelStatsGrid");
 const marketRegimeBadge = document.getElementById("marketRegimeBadge");
 const alertPanel = document.getElementById("alertPanel");
 const toastContainer = document.getElementById("toastContainer");
@@ -61,16 +48,17 @@ const futureForecastLabel = document.getElementById("futureForecastLabel");
 const futureConfidenceValue = document.getElementById("futureConfidenceValue");
 const futurePriceRange = document.getElementById("futurePriceRange");
 const futureRegimeValue = document.getElementById("futureRegimeValue");
-const whyPredictionPanel = document.getElementById("whyPredictionPanel");
-const trendInfluencePanel = document.getElementById("trendInfluencePanel");
-const volatilityContributionPanel = document.getElementById("volatilityContributionPanel");
-const portfolioQtyInput = document.getElementById("portfolioQtyInput");
-const portfolioEntryInput = document.getElementById("portfolioEntryInput");
-const portfolioStats = document.getElementById("portfolioStats");
-const portfolioCanvas = document.getElementById("portfolioChart");
 const tabLinks = Array.from(document.querySelectorAll(".tab-link"));
 const tabPanels = Array.from(document.querySelectorAll(".tab-panel"));
 const sidebarTabLinks = Array.from(document.querySelectorAll("[data-nav-tab]"));
+
+function syncForecastModeUI() {
+  if (!forecastModeSelect) return;
+  const futureDateGroup = document.getElementById("futureDateGroup");
+  const custom = forecastModeSelect.value === "custom_date";
+  if (futureDateInput) futureDateInput.disabled = !custom;
+  if (futureDateGroup) futureDateGroup.style.display = custom ? "block" : "none";
+}
 
 function showToast(message, tone = "info") {
   if (!toastContainer) return;
@@ -186,86 +174,6 @@ function setConfidenceRing(percent) {
   setDashboardConfidence(percent);
 }
 
-function updatePortfolioStats(currentPrice) {
-  const positionValue = portfolioState.positions.reduce((total, position) => total + position.qty * currentPrice, 0);
-  const invested = portfolioState.positions.reduce((total, position) => total + position.qty * position.entry, 0);
-  const pnl = positionValue - invested;
-  const returnPct = invested > 0 ? (pnl / invested) * 100 : 0;
-  portfolioStats.innerHTML = [
-    makeSummaryCard("Cash", `$${portfolioState.cash.toFixed(2)}`),
-    makeSummaryCard("Invested", `$${invested.toFixed(2)}`),
-    makeSummaryCard("P/L", `${pnl >= 0 ? "+" : ""}$${pnl.toFixed(2)}`),
-    makeSummaryCard("Return", `${returnPct.toFixed(2)}%`),
-  ].join("");
-
-  const ctx = portfolioCanvas.getContext("2d");
-  if (portfolioChart) {
-    portfolioChart.data.datasets[0].data.push(pnl);
-    portfolioChart.data.labels.push(String(portfolioChart.data.labels.length + 1));
-    portfolioChart.update();
-    return;
-  }
-  portfolioChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: ["1"],
-      datasets: [{
-        label: "Virtual P/L",
-        data: [pnl],
-        borderColor: "#50e3c2",
-        backgroundColor: "rgba(80, 227, 194, 0.12)",
-        borderWidth: 2,
-        tension: 0.28,
-        pointRadius: 0,
-        fill: true,
-      }],
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { labels: { color: "#e8eef7" } } },
-      scales: {
-        x: { ticks: { color: "#9db0d0" }, grid: { color: "rgba(148, 163, 184, 0.08)" } },
-        y: { ticks: { color: "#9db0d0" }, grid: { color: "rgba(148, 163, 184, 0.08)" } },
-      },
-    },
-  });
-}
-
-function resetPortfolio() {
-  portfolioState = { cash: 10000, positions: [], history: [] };
-  updatePortfolioStats(Number(latestDashboardData.current_price || latestDashboardData.recent_close_value || 0));
-  showToast("Portfolio reset.", "info");
-}
-
-function simulateBuy() {
-  const qty = Math.max(1, Number(portfolioQtyInput.value || 1));
-  const currentPrice = Number(portfolioEntryInput.value || latestDashboardData.current_price || latestDashboardData.recent_close_value || 0);
-  if (!currentPrice) {
-    showToast("Load data before simulating a buy.", "warning");
-    return;
-  }
-  const cost = qty * currentPrice;
-  if (cost > portfolioState.cash) {
-    showToast("Not enough simulated cash.", "error");
-    return;
-  }
-  portfolioState.cash -= cost;
-  portfolioState.positions.push({ qty, entry: currentPrice, symbol: getSelectedSymbol() });
-  updatePortfolioStats(currentPrice);
-  addAlert(`Portfolio buy simulated: ${qty} shares at ${currentPrice.toFixed(2)}`, "info");
-  showToast("Trade simulated.", "success");
-}
-
-function renderExplainability(result, data) {
-  const focus = (data?.focus_timesteps || result?.focus_timesteps || []).slice(0, 6);
-  const volatility = (data?.volatility_scores || result?.volatility_scores || []).slice(-6);
-  const trendScore = result?.probabilities ? (Number(result.probabilities[2] || 0) - Number(result.probabilities[0] || 0)) : 0;
-  const volatilityContribution = volatility.length ? volatility.reduce((sum, value) => sum + Number(value), 0) / volatility.length : 0;
-  whyPredictionPanel.textContent = `ASTA concentrated attention on ${focus.length} recent and volatility-heavy timesteps, using market-aware positional encoding to bias the forecast.`;
-  trendInfluencePanel.textContent = `Trend influence score: ${trendScore.toFixed(4)}. Positive values bias the model toward upward continuation.`;
-  volatilityContributionPanel.textContent = `Volatility contribution: ${volatilityContribution.toFixed(4)}. Higher values signal uncertainty and can widen the estimated range.`;
-}
-
 function getSelectedSymbol() {
   return stockSelect.value || loadedSymbol || "";
 }
@@ -340,20 +248,22 @@ function renderMetrics(result) {
     makeCard("Accuracy", `${(Number(result.accuracy) * 100).toFixed(2)}%`),
     makeCard("ASTA Speedup", `${Number(result.runtime_speedup).toFixed(2)}x`),
   ].join("");
-  analysisGrid.innerHTML = [
-    `<div class="analysis-item"><span>Standard Attention</span><strong class="value">${Number(result.runtime_standard_ms).toFixed(2)} ms</strong><small>O(T² · d)</small></div>`,
-    `<div class="analysis-item"><span>ASTA</span><strong class="value">${Number(result.runtime_asta_ms).toFixed(2)} ms</strong><small>O(T log T · d) approximation</small></div>`,
-    `<div class="analysis-item"><span>Sample Count</span><strong class="value">${result.sample_count}</strong><small>Sliding windows with T = 60</small></div>`,
-  ].join("");
+  if (analysisGrid) {
+    analysisGrid.innerHTML = [
+      `<div class="analysis-item"><span>Standard Attention</span><strong class="value">${Number(result.runtime_standard_ms).toFixed(2)} ms</strong><small>O(T² · d)</small></div>`,
+      `<div class="analysis-item"><span>ASTA</span><strong class="value">${Number(result.runtime_asta_ms).toFixed(2)} ms</strong><small>O(T log T · d) approximation</small></div>`,
+      `<div class="analysis-item"><span>Sample Count</span><strong class="value">${result.sample_count}</strong><small>Sliding windows with T = 60</small></div>`,
+    ].join("");
+  }
 }
 
 function renderDashboardSummary(data, prediction = null) {
   const currentPrice = Number(data.current_price ?? data.recent_close_value ?? 0);
   const currentVolume = Number(data.current_volume ?? 0);
   const trend = prediction?.label || data.trend_direction || "Neutral";
-  currentPriceValue.textContent = currentPrice.toFixed(2);
-  trendDirectionValue.textContent = trend;
-  tradingVolumeValue.textContent = currentVolume.toLocaleString();
+  if (currentPriceValue) currentPriceValue.textContent = currentPrice.toFixed(2);
+  if (trendDirectionValue) trendDirectionValue.textContent = trend;
+  if (tradingVolumeValue) tradingVolumeValue.textContent = currentVolume.toLocaleString();
   setDashboardConfidence(Number(prediction?.confidence || latestForecastData?.confidence || 0) * 100);
   setTopbarState({
     symbol: data.symbol || getSelectedSymbol(),
@@ -362,63 +272,19 @@ function renderDashboardSummary(data, prediction = null) {
     regime: data.market_regime || data.trend_direction || "Sideways market",
     lifecycle: prediction ? `Forecast: ${trend}` : "Data loaded",
   });
-  updatePortfolioStats(currentPrice);
-}
-
-function renderFocusHighlights(data) {
-  const focusTimesteps = Array.isArray(data.focus_timesteps) ? data.focus_timesteps : [];
-  const volatilitySpikes = Array.isArray(data.volatility_spikes) ? data.volatility_spikes : [];
-  const dates = data.recent_window_labels || data.recent_dates || [];
-  const closeSeries = data.recent_close_series || data.recent_close || [];
-  const volatilityScores = data.volatility_scores || [];
-
-  focusTimestepsPanel.innerHTML = focusTimesteps.length
-    ? focusTimesteps.map(index => {
-        const label = dates[index] || `T${index}`;
-        const value = Number(closeSeries[index] ?? 0).toFixed(2);
-        return `<div class="focus-pill" data-tip="ASTA focus point"><strong>${label}</strong><span>${value}</span></div>`;
-      }).join("")
-    : `<div class="focus-empty">No focus points available yet.</div>`;
-
-  volatilitySpikesPanel.innerHTML = volatilitySpikes.length
-    ? volatilitySpikes.map(index => {
-        const label = dates[index] || `T${index}`;
-        const value = Number(volatilityScores[index] ?? 0).toFixed(4);
-        return `<div class="focus-pill volatility" data-tip="Volatility spike"><strong>${label}</strong><span>${value}</span></div>`;
-      }).join("")
-    : `<div class="focus-empty">No volatility spikes available yet.</div>`;
-}
-
-function renderModelStats(stats) {
-  modelRuntimeGrid.innerHTML = [
-    `<div class="analysis-item"><span>Standard Attention</span><strong class="value">${Number(stats.runtime.standard_ms).toFixed(2)} ms</strong><small>Dense baseline</small></div>`,
-    `<div class="analysis-item"><span>ASTA</span><strong class="value">${Number(stats.runtime.asta_ms).toFixed(2)} ms</strong><small>Sparse candidate attention</small></div>`,
-    `<div class="analysis-item"><span>Speedup</span><strong class="value">${Number(stats.runtime.speedup).toFixed(2)}x</strong><small>Lower is better for runtime</small></div>`,
-  ].join("");
-
-  modelComplexityGrid.innerHTML = [
-    `<div class="analysis-item"><span>Standard</span><strong class="value">${stats.complexity.standard}</strong><small>O(T² × d)</small></div>`,
-    `<div class="analysis-item"><span>ASTA</span><strong class="value">${stats.complexity.asta}</strong><small>O(T log T × d)</small></div>`,
-    `<div class="analysis-item"><span>Mode</span><strong class="value">${stats.attention_mode}</strong><small>Current toggle</small></div>`,
-  ].join("");
-
-  modelStatsGrid.innerHTML = [
-    makeSummaryCard("Symbol", stats.symbol || loadedSymbol || "N/A"),
-    makeSummaryCard("Local", stats.selection_strategy.local),
-    makeSummaryCard("Log Sparse", stats.selection_strategy.log_sparse),
-    makeSummaryCard("Volatility", stats.selection_strategy.volatility),
-  ].join("");
 }
 
 function renderPrediction(result) {
   latestForecastData = result;
-  trendLabel.textContent = result.label;
-  confidenceValue.textContent = `${(Number(result.confidence) * 100).toFixed(2)}%`;
+  if (trendLabel) trendLabel.textContent = result.label;
+  if (confidenceValue) confidenceValue.textContent = `${(Number(result.confidence) * 100).toFixed(2)}%`;
   setDashboardConfidence(Number(result.confidence) * 100);
-  probabilitiesPanel.innerHTML = ["Downtrend", "Neutral", "Uptrend"].map((label, index) => {
-    const value = Number(result.probabilities[index] || 0);
-    return `<div class="prob-item"><small>${label}</small><strong>${(value * 100).toFixed(2)}%</strong></div>`;
-  }).join("");
+  if (probabilitiesPanel) {
+    probabilitiesPanel.innerHTML = ["Downtrend", "Neutral", "Uptrend"].map((label, index) => {
+      const value = Number(result.probabilities[index] || 0);
+      return `<div class="prob-item"><small>${label}</small><strong>${(value * 100).toFixed(2)}%</strong></div>`;
+    }).join("");
+  }
 
   if (barChart) {
     barChart.data.labels = ["Downtrend", "Neutral", "Uptrend"];
@@ -427,25 +293,27 @@ function renderPrediction(result) {
   }
 
   const horizonEntries = result.horizon_predictions || {};
-  horizonResultsPanel.innerHTML = Object.entries(horizonEntries).map(([key, value]) => {
-    const horizonLabel = key.replace("short_term", "Short-term").replace("mid_term", "Mid-term").replace("long_term", "Long-term");
-    return `<div class="prediction-row">
-      <div>
-        <small>${horizonLabel}</small>
-        <strong>${value.label}</strong>
-      </div>
-      <span>${(Number(value.confidence) * 100).toFixed(2)}%</span>
-    </div>`;
-  }).join("");
+  if (horizonResultsPanel) {
+    horizonResultsPanel.innerHTML = Object.entries(horizonEntries).map(([key, value]) => {
+      const horizonLabel = key.replace("short_term", "Short-term").replace("mid_term", "Mid-term").replace("long_term", "Long-term");
+      return `<div class="prediction-row">
+        <div>
+          <small>${horizonLabel}</small>
+          <strong>${value.label}</strong>
+        </div>
+        <span>${(Number(value.confidence) * 100).toFixed(2)}%</span>
+      </div>`;
+    }).join("");
+  }
 
-  trendDirectionValue.textContent = result.label;
-  futureForecastLabel.textContent = result.label;
-  futureConfidenceValue.textContent = `${(Number(result.confidence) * 100).toFixed(0)}%`;
+  if (trendDirectionValue) trendDirectionValue.textContent = result.label;
+  if (futureForecastLabel) futureForecastLabel.textContent = result.label;
+  if (futureConfidenceValue) futureConfidenceValue.textContent = `${(Number(result.confidence) * 100).toFixed(0)}%`;
   setConfidenceRing(Number(result.confidence) * 100);
   if (result.price_range) {
-    futurePriceRange.textContent = `$${Number(result.price_range.low).toFixed(2)} - $${Number(result.price_range.high).toFixed(2)}`;
+    if (futurePriceRange) futurePriceRange.textContent = `$${Number(result.price_range.low).toFixed(2)} - $${Number(result.price_range.high).toFixed(2)}`;
   }
-  futureRegimeValue.textContent = result.market_regime || "--";
+  if (futureRegimeValue) futureRegimeValue.textContent = result.market_regime || "--";
   setMarketBadge(result.market_regime || latestDashboardData.trend_direction || "Sideways market");
   setTopbarState({
     symbol: getSelectedSymbol(),
@@ -454,120 +322,116 @@ function renderPrediction(result) {
     regime: result.market_regime || latestDashboardData.trend_direction || "Sideways market",
     lifecycle: `${result.label} forecast ready`,
   });
-  renderExplainability(result, latestDashboardData);
   addAlert(`Trend update: ${result.label} (${(Number(result.confidence) * 100).toFixed(1)}%)`, "info");
 }
 
 function updateChart(data) {
-  const historyLabels = data.recent_window_labels || data.recent_dates || [];
+  if (typeof Chart === "undefined") {
+    console.warn("Chart.js not loaded; skipping chart render");
+    return;
+  }
   const historyValues = data.recent_close_series || data.recent_close || [];
+  const historyLabels = data.recent_window_labels || data.recent_dates || historyValues.map((_, i) => `T${i + 1}`);
   const forecastLabels = latestForecastData?.forecast_curve ? latestForecastData.forecast_curve.map(point => `F${point.step}`) : [];
   latestChartData = { labels: historyLabels.concat(forecastLabels), values: historyValues };
-  const ctx = document.getElementById("lineChart").getContext("2d");
-  if (lineChart) {
-    lineChart.destroy();
-  }
-  const closeSeries = latestChartData.labels.map((_, index) => (index < historyValues.length ? Number(historyValues[index]) : null));
-  const forecastSeries = latestChartData.labels.map((_, index) => {
-    if (!latestForecastData?.forecast_curve) return null;
-    const forecastIndex = index - historyValues.length;
-    if (forecastIndex < 0 || forecastIndex >= latestForecastData.forecast_curve.length) return null;
-    return Number(latestForecastData.forecast_curve[forecastIndex].close);
-  });
-  const volatilitySeries = latestChartData.labels.map((_, index) => (index < (data.volatility_scores || []).length ? Number((data.volatility_scores || [])[index]) * 100 : null));
-  const focusSeries = latestChartData.labels.map((_, index) => (data.focus_timesteps || []).includes(index) && index < historyValues.length ? Number(historyValues[index]) : null);
-  lineChart = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels: latestChartData.labels,
-      datasets: [{
-        label: `${data.symbol} Close`,
-        data: closeSeries,
-        borderColor: "#5eead4",
-        backgroundColor: "rgba(94, 234, 212, 0.12)",
-        borderWidth: 2,
-        tension: 0.28,
-        pointRadius: 0,
-        fill: true,
-      }, {
-        label: "ASTA Focus",
-        data: focusSeries,
-        type: "scatter",
-        backgroundColor: "rgba(255, 205, 86, 0.95)",
-        borderColor: "rgba(255, 205, 86, 1)",
-        pointRadius: 6,
-        showLine: false,
-        yAxisID: "y",
-      }, {
-        label: "Forecast",
-        data: forecastSeries,
-        type: "line",
-        borderColor: "rgba(251, 191, 36, 0.95)",
-        borderDash: [8, 6],
-        pointRadius: 4,
-        pointBackgroundColor: "rgba(251, 191, 36, 0.95)",
-        fill: false,
-        yAxisID: "y",
-      }, {
-        label: "Volatility",
-        data: volatilitySeries,
-        borderColor: "rgba(96, 165, 250, 0.95)",
-        backgroundColor: "rgba(96, 165, 250, 0.12)",
-        borderWidth: 1,
-        tension: 0.28,
-        pointRadius: 0,
-        fill: false,
-        yAxisID: "y1",
-      }],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { labels: { color: "#e8eef7" } },
-      },
-      scales: {
-        x: { ticks: { color: "#9db0d0", maxRotation: 0 }, grid: { color: "rgba(148, 163, 184, 0.08)" } },
-        y: { ticks: { color: "#9db0d0" }, grid: { color: "rgba(148, 163, 184, 0.08)" }, position: "left" },
-        y1: { ticks: { color: "#9db0d0" }, grid: { drawOnChartArea: false }, position: "right" },
-      },
-    },
-  });
+  const lineChartCanvas = document.getElementById("lineChart");
+  if (lineChartCanvas) {
+    const ctx = lineChartCanvas.getContext("2d");
+    if (lineChart) {
+      lineChart.destroy();
+    }
+    const closeSeries = latestChartData.labels.map((_, index) => {
+      if (index >= historyValues.length) return null;
+      const value = Number(historyValues[index]);
+      return Number.isFinite(value) ? value : null;
+    });
 
-  const barCtx = document.getElementById("barChart").getContext("2d");
-  if (barChart) {
-    barChart.destroy();
+    const forecastSeries = latestChartData.labels.map((_, index) => {
+      if (!latestForecastData?.forecast_curve) return null;
+      const forecastIndex = index - historyValues.length;
+      if (forecastIndex < 0 || forecastIndex >= latestForecastData.forecast_curve.length) return null;
+      const value = Number(latestForecastData.forecast_curve[forecastIndex].close);
+      return Number.isFinite(value) ? value : null;
+    });
+
+    lineChart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: latestChartData.labels,
+        datasets: [
+          {
+            label: `${data.symbol} Close`,
+            data: closeSeries,
+            borderColor: "#5eead4",
+            backgroundColor: "rgba(94, 234, 212, 0.12)",
+            borderWidth: 2,
+            tension: 0.28,
+            pointRadius: 0,
+            fill: true,
+          },
+          {
+            label: "Forecast",
+            data: forecastSeries,
+            type: "line",
+            borderColor: "rgba(251, 191, 36, 0.95)",
+            borderDash: [8, 6],
+            pointRadius: 4,
+            pointBackgroundColor: "rgba(251, 191, 36, 0.95)",
+            fill: false,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: "#e8eef7" } },
+        },
+        scales: {
+          x: { ticks: { color: "#9db0d0", maxRotation: 0 }, grid: { color: "rgba(148, 163, 184, 0.08)" } },
+          y: { ticks: { color: "#9db0d0" }, grid: { color: "rgba(148, 163, 184, 0.08)" }, beginAtZero: false },
+        },
+      },
+    });
   }
-  barChart = new Chart(barCtx, {
-    type: "bar",
-    data: {
-      labels: ["Downtrend", "Neutral", "Uptrend"],
-      datasets: [{
-        label: "Trend Probability %",
-        data: [0, 0, 0],
-        backgroundColor: [
-          "rgba(251, 113, 133, 0.82)",
-          "rgba(255, 205, 86, 0.82)",
-          "rgba(134, 239, 172, 0.82)",
-        ],
-        borderColor: [
-          "rgba(251, 113, 133, 1)",
-          "rgba(255, 205, 86, 1)",
-          "rgba(134, 239, 172, 1)",
-        ],
-        borderWidth: 1,
-      }],
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { labels: { color: "#e8eef7" } },
+
+  const barChartCanvas = document.getElementById("barChart");
+  if (barChartCanvas) {
+    const barCtx = barChartCanvas.getContext("2d");
+    if (barChart) {
+      barChart.destroy();
+    }
+    barChart = new Chart(barCtx, {
+      type: "bar",
+      data: {
+        labels: ["Downtrend", "Neutral", "Uptrend"],
+        datasets: [{
+          label: "Trend Probability %",
+          data: [0, 0, 0],
+          backgroundColor: [
+            "rgba(251, 113, 133, 0.82)",
+            "rgba(255, 205, 86, 0.82)",
+            "rgba(134, 239, 172, 0.82)",
+          ],
+          borderColor: [
+            "rgba(251, 113, 133, 1)",
+            "rgba(255, 205, 86, 1)",
+            "rgba(134, 239, 172, 1)",
+          ],
+          borderWidth: 1,
+        }],
       },
-      scales: {
-        x: { ticks: { color: "#9db0d0" }, grid: { color: "rgba(148, 163, 184, 0.08)" } },
-        y: { ticks: { color: "#9db0d0" }, grid: { color: "rgba(148, 163, 184, 0.08)" }, beginAtZero: true },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { labels: { color: "#e8eef7" } },
+        },
+        scales: {
+          x: { ticks: { color: "#9db0d0" }, grid: { color: "rgba(148, 163, 184, 0.08)" } },
+          y: { ticks: { color: "#9db0d0" }, grid: { color: "rgba(148, 163, 184, 0.08)" }, beginAtZero: true, max: 100 },
+        },
       },
-    },
-  });
+    });
+  }
 }
 
 function buildFormData(extra = {}) {
@@ -590,17 +454,23 @@ function resolveFutureForecastPayload() {
 }
 
 async function loadStocks() {
-  const response = await fetch("/stocks");
-  const data = await response.json();
-  stockSelect.innerHTML = data.stocks.map(item => `<option value="${item.symbol}">${item.symbol}</option>`).join("");
-  if (dataStockSelect) {
-    dataStockSelect.innerHTML = data.stocks.map(item => `<option value="${item.symbol}">${item.symbol}</option>`).join("");
+  try {
+    const response = await fetch("/stocks");
+    if (!response.ok) throw new Error("Failed to load stocks");
+    const data = await response.json();
+    stockSelect.innerHTML = data.stocks.map(item => `<option value="${item.symbol}">${item.symbol}</option>`).join("");
+    if (dataStockSelect) {
+      dataStockSelect.innerHTML = data.stocks.map(item => `<option value="${item.symbol}">${item.symbol}</option>`).join("");
+    }
+    loadedSymbol = data.stocks[0]?.symbol || "";
+    if (stockSelect) stockSelect.value = loadedSymbol;
+    if (dataStockSelect) dataStockSelect.value = loadedSymbol;
+    setStatus(`Loaded ${data.stocks.length} stocks from the dataset.`, "success");
+    appendTrainingLog(`Loaded ${data.stocks.length} symbols from dataset.`, "dim");
+  } catch (error) {
+    console.error("Error loading stocks:", error);
+    showToast("Failed to load stocks.", "error");
   }
-  loadedSymbol = data.stocks[0]?.symbol || "";
-  if (stockSelect) stockSelect.value = loadedSymbol;
-  if (dataStockSelect) dataStockSelect.value = loadedSymbol;
-  setStatus(`Loaded ${data.stocks.length} stocks from the dataset.`, "success");
-  appendTrainingLog(`Loaded ${data.stocks.length} symbols from dataset.`, "dim");
 }
 
 async function loadData() {
@@ -608,24 +478,28 @@ async function loadData() {
   if (!symbol) return;
   setStatus(`Loading processed data for ${symbol}...`);
   appendTrainingLog(`Fetching processed data for ${symbol}...`, "dim");
-  const response = await fetch(`/data?symbol=${encodeURIComponent(symbol)}`);
-  const data = await response.json();
-  latestDashboardData = data;
-  renderDashboardSummary(data);
-  renderFocusHighlights(data);
-  updateChart(data);
-  setMarketBadge(data.market_regime || data.trend_direction || "Sideways market");
-  setTopbarState({
-    symbol: symbol,
-    price: Number(data.current_price ?? data.recent_close_value ?? 0),
-    mode: getAttentionMode(),
-    regime: data.market_regime || data.trend_direction || "Sideways market",
-    lifecycle: "Dashboard synced",
-  });
-  setStatus(`Showing processed data for ${symbol}.`, "success");
-  appendTrainingLog(`Data ready for ${symbol}.`, "dim");
-  await loadModelStats();
-  await updateMarketRegime();
+  try {
+    const response = await fetch(`/data?symbol=${encodeURIComponent(symbol)}`);
+    if (!response.ok) throw new Error("Failed to load data");
+    const data = await response.json();
+    latestDashboardData = data;
+    renderDashboardSummary(data);
+    updateChart(data);
+    setMarketBadge(data.market_regime || data.trend_direction || "Sideways market");
+    setTopbarState({
+      symbol: symbol,
+      price: Number(data.current_price ?? data.recent_close_value ?? 0),
+      mode: getAttentionMode(),
+      regime: data.market_regime || data.trend_direction || "Sideways market",
+      lifecycle: "Dashboard synced",
+    });
+    setStatus(`Showing processed data for ${symbol}.`, "success");
+    appendTrainingLog(`Data ready for ${symbol}.`, "dim");
+  } catch (error) {
+    console.error("Error loading data:", error);
+    setStatus("Failed to load data.", "error");
+    showToast("Failed to load data.", "error");
+  }
 }
 
 async function trainModel() {
@@ -679,7 +553,6 @@ async function predictTrend() {
     if (Number(data.confidence) > 0.6) {
       addAlert(`High-confidence signal detected: ${data.label}`, "success");
     }
-    await loadModelStats();
     updateChart(latestDashboardData);
     appendTrainingLog(`Prediction complete: ${data.label} (${(Number(data.confidence) * 100).toFixed(1)}%).`, "dim");
   } finally {
@@ -689,7 +562,7 @@ async function predictTrend() {
 
 async function predictFutureDate() {
   setBusy(true);
-  datePredictionStatus.textContent = "Generating date forecast...";
+  if (datePredictionStatus) datePredictionStatus.textContent = "Generating date forecast...";
   appendTrainingLog("Running future-date forecast...", "dim");
   try {
     const mode = forecastModeSelect.value;
@@ -698,16 +571,16 @@ async function predictFutureDate() {
     const response = await fetch(endpoint, { method: "POST", body: payload });
     const data = await response.json();
     if (!response.ok) {
-      datePredictionStatus.textContent = data.detail || "Date prediction failed.";
+      if (datePredictionStatus) datePredictionStatus.textContent = data.detail || "Date prediction failed.";
       setDataStatus(data.detail || "Date prediction failed.", "error");
       return;
     }
     latestForecastData = data;
-    futureForecastLabel.textContent = data.label || "Neutral";
-    futureConfidenceValue.textContent = `${(Number(data.confidence || 0) * 100).toFixed(0)}%`;
+    if (futureForecastLabel) futureForecastLabel.textContent = data.label || "Neutral";
+    if (futureConfidenceValue) futureConfidenceValue.textContent = `${(Number(data.confidence || 0) * 100).toFixed(0)}%`;
     setConfidenceRing(Number(data.confidence || 0) * 100);
-    futurePriceRange.textContent = data.price_range ? `$${Number(data.price_range.low).toFixed(2)} - $${Number(data.price_range.high).toFixed(2)}` : `--`;
-    futureRegimeValue.textContent = data.market_regime || "--";
+    if (futurePriceRange) futurePriceRange.textContent = data.price_range ? `$${Number(data.price_range.low).toFixed(2)} - $${Number(data.price_range.high).toFixed(2)}` : `--`;
+    if (futureRegimeValue) futureRegimeValue.textContent = data.market_regime || "--";
     setMarketBadge(data.market_regime || "Sideways market");
     setTopbarState({
       symbol: getSelectedSymbol(),
@@ -716,57 +589,21 @@ async function predictFutureDate() {
       regime: data.market_regime || "Sideways market",
       lifecycle: `Forecast for ${data.future_date || futureDateInput.value}`,
     });
-    renderExplainability(data, latestDashboardData);
-    datePredictionStatus.textContent = `Forecast ready for ${data.future_date || futureDateInput.value}.`;
+    if (datePredictionStatus) datePredictionStatus.textContent = `Forecast ready for ${data.future_date || futureDateInput.value}.`;
     setDataStatus(`Forecast completed for ${data.future_date || futureDateInput.value}.`, "success");
     addAlert(`Future forecast generated for ${data.future_date || futureDateInput.value}`, "info");
-    updateChart({ ...latestDashboardData, focus_timesteps: data.focus_timesteps, volatility_scores: data.volatility_scores });
+    updateChart(latestDashboardData);
     appendTrainingLog(`Future-date forecast complete for ${data.future_date || futureDateInput.value}.`, "dim");
   } finally {
     setBusy(false);
   }
 }
 
-async function loadModelStats() {
-  const symbol = getSelectedSymbol();
-  if (!symbol) return;
-  const response = await fetch(`/model-stats?symbol=${encodeURIComponent(symbol)}&use_standard_attention=${getAttentionMode() === "standard"}`);
-  if (!response.ok) return;
-  const stats = await response.json();
-  renderModelStats(stats);
-  setTopbarState({
-    symbol: stats.symbol || getSelectedSymbol(),
-    price: Number(latestDashboardData.current_price ?? latestDashboardData.recent_close_value ?? 0),
-    mode: stats.attention_mode || getAttentionMode(),
-    regime: marketRegimeBadge.textContent || "Sideways market",
-    lifecycle: `${stats.attention_mode || getAttentionMode()} ready`,
-  });
-}
-
-async function updateMarketRegime() {
-  const symbol = getSelectedSymbol();
-  if (!symbol) return;
-  const response = await fetch(`/market-regime?symbol=${encodeURIComponent(symbol)}&use_standard_attention=${getAttentionMode() === "standard"}`);
-  if (!response.ok) return;
-  const data = await response.json();
-  setMarketBadge(data.market_regime || "Sideways market");
-  addAlert(`Market regime: ${data.market_regime}`, data.badge || "warning");
-  setTopbarState({
-    symbol: getSelectedSymbol(),
-    price: Number(latestDashboardData.current_price ?? latestDashboardData.recent_close_value ?? 0),
-    mode: getAttentionMode(),
-    regime: data.market_regime || "Sideways market",
-    lifecycle: data.market_regime || "Regime updated",
-  });
-}
-
-loadDataBtn.addEventListener("click", loadData);
-trainBtn.addEventListener("click", trainModel);
-predictBtn.addEventListener("click", predictTrend);
-predictDateBtn.addEventListener("click", predictFutureDate);
-trainUploadedBtn.addEventListener("click", trainModel);
-simulateBuyBtn.addEventListener("click", simulateBuy);
-resetPortfolioBtn.addEventListener("click", resetPortfolio);
+if (loadDataBtn) loadDataBtn.addEventListener("click", loadData);
+if (trainBtn) trainBtn.addEventListener("click", trainModel);
+if (predictBtn) predictBtn.addEventListener("click", predictTrend);
+if (predictDateBtn) predictDateBtn.addEventListener("click", predictFutureDate);
+if (trainUploadedBtn) trainUploadedBtn.addEventListener("click", trainModel);
 
 tabLinks.forEach(button => {
   button.addEventListener("click", () => activateTab(button.dataset.tab));
@@ -774,10 +611,11 @@ tabLinks.forEach(button => {
 
 // Old sidebar tab logic removed for multi-page architecture
 
-forecastModeSelect.addEventListener("change", () => {
-  const custom = forecastModeSelect.value === "custom_date";
-  futureDateInput.disabled = !custom;
-});
+if (forecastModeSelect) {
+  forecastModeSelect.addEventListener("change", () => {
+    syncForecastModeUI();
+  });
+}
 
 if (dropZone) {
   dropZone.addEventListener("click", () => fileInputData.click());
@@ -799,31 +637,33 @@ if (dropZone) {
   });
 }
 
-attentionModeSelect.addEventListener("change", () => {
-  setTopbarState({
-    symbol: getSelectedSymbol(),
-    price: Number(latestDashboardData.current_price ?? latestDashboardData.recent_close_value ?? 0),
-    mode: getAttentionMode(),
-    regime: marketRegimeBadge.textContent || "Sideways market",
-    lifecycle: `${getAttentionMode() === "standard" ? "Standard" : "ASTA"} selected`,
+if (attentionModeSelect) {
+  attentionModeSelect.addEventListener("change", () => {
+    setTopbarState({
+      symbol: getSelectedSymbol(),
+      price: Number(latestDashboardData.current_price ?? latestDashboardData.recent_close_value ?? 0),
+      mode: getAttentionMode(),
+      regime: marketRegimeBadge?.textContent || "Sideways market",
+      lifecycle: `${getAttentionMode() === "standard" ? "Standard" : "ASTA"} selected`,
+    });
   });
-  loadModelStats().catch(console.error);
-  updateMarketRegime().catch(console.error);
-});
+}
 
-stockSelect.addEventListener("change", () => {
-  if (dataStockSelect && dataStockSelect.value !== stockSelect.value) {
-    dataStockSelect.value = stockSelect.value;
-  }
-  setTopbarState({
-    symbol: getSelectedSymbol(),
-    price: Number(latestDashboardData.current_price ?? latestDashboardData.recent_close_value ?? 0),
-    mode: getAttentionMode(),
-    regime: marketRegimeBadge.textContent || "Sideways market",
-    lifecycle: `Switched to ${getSelectedSymbol()}`,
+if (stockSelect) {
+  stockSelect.addEventListener("change", () => {
+    if (dataStockSelect && dataStockSelect.value !== stockSelect.value) {
+      dataStockSelect.value = stockSelect.value;
+    }
+    setTopbarState({
+      symbol: getSelectedSymbol(),
+      price: Number(latestDashboardData.current_price ?? latestDashboardData.recent_close_value ?? 0),
+      mode: getAttentionMode(),
+      regime: marketRegimeBadge?.textContent || "Sideways market",
+      lifecycle: `Switched to ${getSelectedSymbol()}`,
+    });
+    loadData().catch(console.error);
   });
-  loadData().catch(console.error);
-});
+}
 
 if (dataStockSelect) {
   dataStockSelect.addEventListener("change", () => {
@@ -840,11 +680,13 @@ if (dataStockSelect) {
   });
 }
 
-fileInputData.addEventListener("change", () => {
-  const name = fileInputData.files[0]?.name || "No file selected";
-  setDataStatus(`Selected: ${name}`, "success");
-  appendTrainingLog(`Uploaded file selected: ${name}`, "dim");
-});
+if (fileInputData) {
+  fileInputData.addEventListener("change", () => {
+    const name = fileInputData.files[0]?.name || "No file selected";
+    setDataStatus(`Selected: ${name}`, "success");
+    appendTrainingLog(`Uploaded file selected: ${name}`, "dim");
+  });
+}
 
 if (refreshNewsBtn) {
   refreshNewsBtn.addEventListener("click", () => {
@@ -852,11 +694,13 @@ if (refreshNewsBtn) {
   });
 }
 
-fileInput.addEventListener("change", () => {
-  const name = fileInput.files[0]?.name || "No file selected";
-  setStatus(`Dashboard upload selected: ${name}`, "success");
-  appendTrainingLog(`Dashboard upload selected: ${name}`, "dim");
-});
+if (fileInput) {
+  fileInput.addEventListener("change", () => {
+    const name = fileInput.files[0]?.name || "No file selected";
+    setStatus(`Dashboard upload selected: ${name}`, "success");
+    appendTrainingLog(`Dashboard upload selected: ${name}`, "dim");
+  });
+}
 
 loadStocks().then(loadData).catch(error => {
   console.error(error);
@@ -866,6 +710,5 @@ loadStocks().then(loadData).catch(error => {
 
 loadPakistanNews().catch(console.error);
 
-resetPortfolio();
-futureDateInput.disabled = true;
+syncForecastModeUI();
 appendTrainingLog("Dashboard initialized.", "dim");

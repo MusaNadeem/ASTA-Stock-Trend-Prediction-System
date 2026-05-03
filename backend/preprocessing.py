@@ -57,9 +57,15 @@ def read_stock_frame(source: Path | str | bytes | pd.DataFrame) -> pd.DataFrame:
     if isinstance(source, pd.DataFrame):
         frame = source.copy()
     elif isinstance(source, (str, Path)):
-        frame = pd.read_csv(source)
+        try:
+            frame = pd.read_csv(source, encoding="utf-8")
+        except UnicodeDecodeError:
+            frame = pd.read_csv(source, encoding="utf-8-sig")
     else:
-        frame = pd.read_csv(source)
+        try:
+            frame = pd.read_csv(source, encoding="utf-8")
+        except UnicodeDecodeError:
+            frame = pd.read_csv(source, encoding="utf-8-sig")
     if "Date" not in frame.columns:
         raise ValueError("CSV must contain a Date column")
     frame["Date"] = pd.to_datetime(frame["Date"], errors="coerce")

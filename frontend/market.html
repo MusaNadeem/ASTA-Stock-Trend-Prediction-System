@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Market Feed â€” ASTA Terminal</title>
+  <title>Market Feed — ASTA Terminal</title>
   <meta name="description" content="Real-time market feed with price updates, order flow, volatility spikes, and regime detection." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,7 +15,7 @@
 
   <nav class="t-sidebar" id="tSidebar">
     <div class="t-sidebar-logo">
-      <a href="/" class="t-logo-link"><span class="logo-mark">Î›</span><span class="logo-text">ASTA Terminal</span></a>
+      <a href="/" class="t-logo-link"><span class="logo-mark">Λ</span><span class="logo-text">ASTA Terminal</span></a>
     </div>
     <div class="t-sidebar-stock">
       <label class="t-sidebar-label">Active Stock</label>
@@ -29,8 +29,6 @@
       <li><a href="/charts" class="t-nav-link"><i class="fa-solid fa-chart-line"></i><span>Charts</span></a></li>
       <li><a href="/signals" class="t-nav-link"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI Signals</span></a></li>
       <li><a href="/market" class="t-nav-link active"><i class="fa-solid fa-bolt"></i><span>Market Feed</span></a></li>
-      <li><a href="/portfolio" class="t-nav-link"><i class="fa-solid fa-wallet"></i><span>Portfolio</span></a></li>
-      <li><a href="/insights" class="t-nav-link"><i class="fa-solid fa-newspaper"></i><span>Insights</span></a></li>
     </ul>
     <div class="t-sidebar-bottom">
       <div class="t-live-indicator"><span class="live-dot"></span><span>LIVE</span></div>
@@ -61,43 +59,43 @@
             <div class="t-stat-icon price"><i class="fa-solid fa-dollar-sign"></i></div>
             <div class="t-stat-content">
               <span>Current Price</span>
-              <strong id="mktCurrentPrice">â€”</strong>
-              <div class="t-stat-change" id="mktPriceChange">â€”</div>
+              <strong id="mktCurrentPrice">—</strong>
+              <div class="t-stat-change" id="mktPriceChange">—</div>
             </div>
           </div>
           <div class="t-card t-stat-card">
             <div class="t-stat-icon volume"><i class="fa-solid fa-chart-bar"></i></div>
             <div class="t-stat-content">
               <span>Trading Volume</span>
-              <strong id="mktVolume">â€”</strong>
+              <strong id="mktVolume">—</strong>
             </div>
           </div>
           <div class="t-card t-stat-card">
             <div class="t-stat-icon high"><i class="fa-solid fa-arrow-up"></i></div>
             <div class="t-stat-content">
               <span>Period High</span>
-              <strong id="mktHigh">â€”</strong>
+              <strong id="mktHigh">—</strong>
             </div>
           </div>
           <div class="t-card t-stat-card">
             <div class="t-stat-icon low"><i class="fa-solid fa-arrow-down"></i></div>
             <div class="t-stat-content">
               <span>Period Low</span>
-              <strong id="mktLow">â€”</strong>
+              <strong id="mktLow">—</strong>
             </div>
           </div>
           <div class="t-card t-stat-card">
             <div class="t-stat-icon regime"><i class="fa-solid fa-compass"></i></div>
             <div class="t-stat-content">
               <span>Market Regime</span>
-              <strong id="mktRegime">â€”</strong>
+              <strong id="mktRegime">—</strong>
             </div>
           </div>
           <div class="t-card t-stat-card">
             <div class="t-stat-icon slope"><i class="fa-solid fa-chart-line"></i></div>
             <div class="t-stat-content">
               <span>Trend Slope</span>
-              <strong id="mktSlope">â€”</strong>
+              <strong id="mktSlope">—</strong>
             </div>
           </div>
         </div>
@@ -135,10 +133,10 @@
           <div class="t-card t-regime-card" id="regimeCard">
             <div class="t-regime-icon"><i class="fa-solid fa-compass"></i></div>
             <div class="t-regime-info">
-              <h3 id="regimeCardTitle">â€”</h3>
+              <h3 id="regimeCardTitle">—</h3>
               <p id="regimeCardDesc">Select a stock and refresh to detect the current market regime.</p>
             </div>
-            <div class="t-regime-badge-lg" id="regimeCardBadge">â€”</div>
+            <div class="t-regime-badge-lg" id="regimeCardBadge">—</div>
           </div>
           <div class="t-card">
             <h3 class="t-card-title">Regime Interpretation</h3>
@@ -149,7 +147,7 @@
               </div>
               <div class="t-regime-guide-item bear">
                 <i class="fa-solid fa-circle-arrow-down"></i>
-                <div><strong>Bear Market</strong><p>Sustained downward pressure. Higher downtrend probabilities from the MHVP voting system.</p></div>
+                <div><strong>Bear Market</strong><p>Sustained downward pressure. Higher downtrend probabilities from the ANN voting system.</p></div>
               </div>
               <div class="t-regime-guide-item sideways">
                 <i class="fa-solid fa-arrows-left-right"></i>
@@ -181,6 +179,17 @@
               <div class="t-ob-empty">Load data to view asks</div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- Market News -->
+      <section class="t-section">
+        <div class="t-section-header">
+          <h2 class="t-section-title"><i class="fa-solid fa-newspaper"></i> PSX News & Insights</h2>
+          <div class="t-section-meta">Latest business headlines from Dawn & Tribune</div>
+        </div>
+        <div class="t-news-grid" id="psxNewsGrid">
+          <div class="t-news-loading"><i class="fa-solid fa-spinner fa-spin"></i> Loading news...</div>
         </div>
       </section>
 
@@ -293,9 +302,9 @@
       document.getElementById('mktVolume').textContent = Number(data.current_volume || vols[vols.length-1] || 0).toLocaleString();
       document.getElementById('mktHigh').textContent = Number(Math.max(...highs)).toFixed(2);
       document.getElementById('mktLow').textContent = Number(Math.min(...lows.filter(v => v > 0))).toFixed(2);
-      document.getElementById('mktRegime').textContent = regime.market_regime || 'â€”';
+      document.getElementById('mktRegime').textContent = regime.market_regime || '—';
       document.getElementById('mktRegimeBadge').textContent = regime.market_regime || 'Sideways market';
-      document.getElementById('mktSlope').textContent = regime.trend_slope_hint ? (regime.trend_slope_hint > 0 ? '+' : '') + Number(regime.trend_slope_hint).toFixed(4) : 'â€”';
+      document.getElementById('mktSlope').textContent = regime.trend_slope_hint ? (regime.trend_slope_hint > 0 ? '+' : '') + Number(regime.trend_slope_hint).toFixed(4) : '—';
 
       // Price stream
       const stream = document.getElementById('priceStream');
@@ -332,7 +341,7 @@
       const regimeTitle = regime.market_regime || 'Unknown';
       const regimeCls = regimeTitle.toLowerCase().includes('bull') ? 'bull' : regimeTitle.toLowerCase().includes('bear') ? 'bear' : 'sideways';
       document.getElementById('regimeCardTitle').textContent = regimeTitle;
-      document.getElementById('regimeCardDesc').textContent = `Trend slope: ${regime.trend_slope_hint ? (regime.trend_slope_hint > 0 ? '+' : '') + Number(regime.trend_slope_hint).toFixed(4) : 'N/A'} Â· Detected from ${closes.length} periods of price data`;
+      document.getElementById('regimeCardDesc').textContent = `Trend slope: ${regime.trend_slope_hint ? (regime.trend_slope_hint > 0 ? '+' : '') + Number(regime.trend_slope_hint).toFixed(4) : 'N/A'} · Detected from ${closes.length} periods of price data`;
       document.getElementById('regimeCard').className = 't-card t-regime-card regime-' + regimeCls;
       document.getElementById('regimeCardBadge').textContent = regimeTitle;
 
@@ -369,11 +378,35 @@
         if (alert.type === 'price') {
           const triggered = (alert.dir === 'above' && price >= alert.threshold) || (alert.dir === 'below' && price <= alert.threshold);
           if (triggered && !alert.fired) {
-            showToast(`ðŸ”” Price Alert: ${data.symbol} is ${alert.dir} ${alert.threshold}! (${price.toFixed(2)})`, 'warning');
+            showToast(`🔔 Price Alert: ${data.symbol} is ${alert.dir} ${alert.threshold}! (${price.toFixed(2)})`, 'warning');
             alert.fired = true;
           }
         }
       });
+    }
+
+    async function loadNews() {
+      const grid = document.getElementById('psxNewsGrid');
+      try {
+        const res = await fetch('/news?limit=6');
+        const data = await res.json();
+        if (data.news && data.news.length > 0) {
+          grid.innerHTML = data.news.map(n => `
+            <a href="${n.link}" target="_blank" class="t-news-card neutral" style="text-decoration:none">
+              <div class="t-news-card-header">
+                <span class="t-news-source">${n.source}</span>
+                <span class="t-news-tone neutral">News</span>
+              </div>
+              <h3 class="t-news-title">${n.title}</h3>
+              <div class="t-news-date">${n.published_at}</div>
+            </a>
+          `).join('');
+        } else {
+          grid.innerHTML = '<div class="t-news-empty"><i class="fa-solid fa-newspaper"></i> No news found</div>';
+        }
+      } catch (err) {
+        grid.innerHTML = '<div class="t-news-empty"><i class="fa-solid fa-triangle-exclamation"></i> Failed to load news</div>';
+      }
     }
 
     fetch('/stocks').then(r => r.json()).then(d => {
@@ -381,6 +414,7 @@
       sel.innerHTML = d.stocks.map(s => `<option value="${s.symbol}">${s.symbol}</option>`).join('');
       sel.addEventListener('change', refreshMarketData);
       refreshMarketData();
+      loadNews();
     });
 
     document.getElementById('refreshMarketBtn').addEventListener('click', refreshMarketData);

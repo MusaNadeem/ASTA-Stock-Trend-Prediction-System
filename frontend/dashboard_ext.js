@@ -1,4 +1,4 @@
-﻿// Dashboard extension - multi-model display + app.js compatibility patches
+// Dashboard extension - multi-model display + app.js compatibility patches
 
 // Fix topbar price chip ID compatibility
 (function(){
@@ -32,11 +32,11 @@ window.renderPrediction = function(result) {
 
   // Verdicts
   const verdict = label+' — '+(Number(result.confidence||0)*100).toFixed(1)+'%';
-  ['astaVerdict','tapeVerdict','mhvpVerdict'].forEach(id=>{
+  ['astaVerdict','tapeVerdict','annVerdict'].forEach(id=>{
     const el=document.getElementById(id); if(el) el.textContent=verdict;
   });
 
-  // MHVP horizons
+  // ANN horizons
   const hp = result.horizon_predictions || {};
   const entries = Object.entries(hp);
   const hmGrid = document.getElementById('horizonResults');

@@ -23,14 +23,16 @@ from pydantic import BaseModel
 from torch import nn
 from torch.utils.data import DataLoader, TensorDataset
 
+from .search import HybridSearcher
 from .attention import compare_runtime_standard_vs_asta
 from .forecasting import forecast_for_date, market_regime_from_series, recursive_forecast, regime_badge_color
-from .model import MultiHorizonTrendTransformer
+from .embedding_model import MultiHorizonTrendTransformer
 from .preprocessing import (
     DEFAULT_HORIZONS,
     DEFAULT_TRAIN_FRACTION,
     DEFAULT_TREND_THRESHOLD,
     DEFAULT_WINDOW_SIZE,
+    FEATURE_COLUMNS,
     ProcessedBundle,
     build_processed_bundle,
     list_symbols,
@@ -164,6 +166,9 @@ class TrendModelService:
             "metrics": metrics,
             "source_name": source_name,
         }
+        # Persist ANN index alongside the model weights
+        if model.ann_index is not None and model.ann_index.is_built():
+            payload["ann_index_bytes"] = model.ann_index.to_bytes()
         torch.save(payload, path)
 
     def _load_checkpoint(self, path: Path) -> dict[str, Any] | None:
@@ -176,6 +181,13 @@ class TrendModelService:
         bundle = self._bundle_from_state(payload["bundle"])
         metrics = dict(payload.get("metrics", {}))
         source_name = str(payload.get("source_name", bundle.symbol))
+        # Restore ANN index if it was persisted
+        ann_bytes = payload.get("ann_index_bytes")
+        if ann_bytes is not None:
+            try:
+                model.ann_index = HybridSearcher.from_bytes(ann_bytes)
+            except Exception:
+                model.ann_index = None  # non-fatal – will be rebuilt on next train
         return {
             "model": model,
             "bundle": bundle,
@@ -295,6 +307,19 @@ class TrendModelService:
 
         accuracy = correct / total if total else 0.0
 
+        # ----------------------------------------------------------------
+        # Step 2: Build ANN index over ALL training embeddings
+        # ----------------------------------------------------------------
+        try:
+            model.build_ann_index(
+                all_x=bundle.all_x,
+                all_y=bundle.all_y,
+                device=DEVICE,
+            )
+        except Exception as ann_err:  # non-fatal – index stays None
+            import logging
+            logging.getLogger(__name__).warning("ANN index build failed: %s", ann_err)
+
         benchmark = compare_runtime_standard_vs_asta(sequence_length=bundle.window_size, hidden_size=model.hidden_size, batch_size=4, runs=5, device=DEVICE)
         metrics = {
             "symbol": symbol,
@@ -309,10 +334,46 @@ class TrendModelService:
             "cached": False,
             "model_path": str(checkpoint_path),
             "attention_mode": model.attention_mode,
+            "ann_index_size": model.ann_index.element_count if model.ann_index else 0,
+            "ann_backend": model.ann_index.backend if model.ann_index else "none",
         }
         self._store_loaded_model(key, {"model": model, "bundle": bundle, "metrics": metrics, "source_name": source_name or symbol})
         self._save_checkpoint(checkpoint_path, model, bundle, metrics, source_name or symbol)
         return metrics
+
+    def _resolve_latest_frame(self, bundle: ProcessedBundle, frame: pd.DataFrame | None) -> pd.DataFrame | None:
+        if frame is not None:
+            return frame
+        try:
+            if bundle.source_path and Path(bundle.source_path).exists():
+                return read_stock_frame(bundle.source_path)
+        except Exception:
+            return None
+        return None
+
+    def _build_inference_seed(
+        self,
+        bundle: ProcessedBundle,
+        frame: pd.DataFrame | None,
+    ) -> tuple[torch.Tensor, np.ndarray, np.ndarray, str]:
+        resolved = self._resolve_latest_frame(bundle, frame)
+        if resolved is None or len(resolved) < bundle.window_size:
+            fallback_raw = bundle.raw_windows[-1] if len(bundle.raw_windows) else np.zeros((bundle.window_size, 5), dtype=np.float32)
+            fallback_closes = bundle.closes if len(bundle.closes) else np.asarray([], dtype=np.float32)
+            fallback_date = bundle.dates[-1] if bundle.dates else ""
+            latest_window = torch.from_numpy(bundle.all_x[-1:]).float().to(DEVICE)
+            return latest_window, fallback_raw, fallback_closes, fallback_date
+
+        values = resolved.loc[:, FEATURE_COLUMNS].to_numpy(dtype=np.float32)
+        raw_window = values[-bundle.window_size :]
+        mean = np.asarray(bundle.mean, dtype=np.float32)
+        std = np.asarray(bundle.std, dtype=np.float32)
+        std = np.where(std == 0, 1.0, std)
+        normalized = (raw_window - mean) / std
+        latest_window = torch.from_numpy(normalized[np.newaxis, :, :]).float().to(DEVICE)
+        closes = resolved.loc[:, "Close"].to_numpy(dtype=np.float32)
+        last_date = resolved.loc[resolved.index[-1], "Date"].strftime("%Y-%m-%d")
+        return latest_window, raw_window, closes, last_date
 
     def predict(self, symbol: str, frame: pd.DataFrame | None = None, use_standard_attention: bool = False) -> dict[str, Any]:
         key = self._key(symbol, None, use_standard_attention)
@@ -327,7 +388,7 @@ class TrendModelService:
                 self.train(symbol=symbol, use_standard_attention=use_standard_attention)
         model: MultiHorizonTrendTransformer = self.models[key]["model"]
         bundle: ProcessedBundle = self.models[key]["bundle"]
-        latest_window = torch.from_numpy(bundle.all_x[-1:]).float().to(DEVICE)
+        latest_window, _, _, _ = self._build_inference_seed(bundle=bundle, frame=frame)
         prediction = model.predict(latest_window)
         horizon_order = list(prediction.horizon_predictions.items())
         short_term_prediction = prediction.horizon_predictions.get("short_term", horizon_order[0][1] if horizon_order else {})
@@ -352,6 +413,9 @@ class TrendModelService:
             "long_term_prediction": long_term_prediction,
             "sample_count": int(bundle.all_x.shape[0]),
             "attention_mode": model.attention_mode,
+            "ann_index_size": model.ann_index.element_count if model.ann_index else 0,
+            "ann_backend": model.ann_index.backend if model.ann_index else "none",
+            "prediction_pipeline": "Transformer \u2192 ANN (HNSW/LSH) \u2192 Majority Voting" if (model.ann_index and model.ann_index.is_built()) else "Transformer \u2192 MHVP",
         }
 
     def get_bundle(self, symbol: str) -> ProcessedBundle:
@@ -411,7 +475,17 @@ class TrendModelService:
         frame: pd.DataFrame | None = None,
     ) -> dict[str, Any]:
         model, bundle, _ = self.ensure_model(symbol=symbol, use_standard_attention=use_standard_attention, frame=frame)
-        result = forecast_for_date(model=model, bundle=bundle, future_date=future_date, device=DEVICE)
+        seed_window, seed_raw_window, seed_closes, last_date = self._build_inference_seed(bundle=bundle, frame=frame)
+        result = forecast_for_date(
+            model=model,
+            bundle=bundle,
+            future_date=future_date,
+            device=DEVICE,
+            last_date=last_date,
+            seed_window=seed_window,
+            seed_raw_window=seed_raw_window,
+            seed_closes=seed_closes,
+        )
         return {
             "symbol": symbol,
             "future_date": result.target_date,
@@ -436,12 +510,24 @@ class TrendModelService:
         frame: pd.DataFrame | None = None,
     ) -> dict[str, Any]:
         model, bundle, _ = self.ensure_model(symbol=symbol, use_standard_attention=use_standard_attention, frame=frame)
-        forecast = recursive_forecast(model=model, bundle=bundle, steps=steps, device=DEVICE)
+        seed_window, seed_raw_window, seed_closes, _ = self._build_inference_seed(bundle=bundle, frame=frame)
+        base_prediction = model.predict(seed_window)
+        forecast = recursive_forecast(
+            model=model,
+            bundle=bundle,
+            steps=steps,
+            device=DEVICE,
+            seed_window=seed_window,
+            seed_raw_window=seed_raw_window,
+            seed_closes=seed_closes,
+        )
         return {
             "symbol": symbol,
             "steps": steps,
             "label": forecast["label"],
             "confidence": forecast["confidence"],
+            "probabilities": base_prediction.probabilities,
+            "horizon_predictions": base_prediction.horizon_predictions,
             "predicted_price": forecast["predicted_close"],
             "price_range": {"low": forecast["low"], "high": forecast["high"]},
             "forecast_curve": forecast["forecast_curve"],
@@ -454,10 +540,10 @@ class TrendModelService:
 
     def market_regime(self, symbol: str, use_standard_attention: bool = False, frame: pd.DataFrame | None = None) -> dict[str, Any]:
         _, bundle, _ = self.ensure_model(symbol=symbol, use_standard_attention=use_standard_attention, frame=frame)
-        raw_window = bundle.raw_windows[-1] if len(bundle.raw_windows) else np.zeros((bundle.window_size, 5), dtype=np.float32)
-        volatility_scores = raw_window.var(axis=1).tolist()
-        regime = market_regime_from_series(bundle.closes, volatility_scores)
-        slope_hint = float(np.polyfit(np.arange(len(bundle.closes)), bundle.closes, 1)[0]) if len(bundle.closes) > 2 else 0.0
+        _, raw_window, closes, _ = self._build_inference_seed(bundle=bundle, frame=frame)
+        volatility_scores = raw_window.var(axis=1).tolist() if len(raw_window) else []
+        regime = market_regime_from_series(closes, volatility_scores)
+        slope_hint = float(np.polyfit(np.arange(len(closes)), closes, 1)[0]) if len(closes) > 2 else 0.0
         return {
             "symbol": symbol,
             "market_regime": regime,
@@ -541,17 +627,6 @@ def market_page() -> FileResponse:
     return FileResponse(FRONTEND_DIR / "market.html")
 
 
-@app.get("/portfolio")
-def portfolio_page() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "portfolio.html")
-
-
-@app.get("/insights")
-def insights_page() -> FileResponse:
-    return FileResponse(FRONTEND_DIR / "insights.html")
-
-
-
 @app.get("/stocks")
 def stocks() -> dict[str, Any]:
     return {"stocks": list_symbols(DATASET_DIR)}
@@ -561,8 +636,37 @@ def stocks() -> dict[str, Any]:
 def data(symbol: str) -> JSONResponse:
     bundle = service.get_bundle(symbol)
     payload = to_processed_payload(bundle)
-    raw_window = bundle.raw_windows[-1] if len(bundle.raw_windows) else None
-    if raw_window is not None:
+    try:
+        frame = read_stock_frame(bundle.source_path)
+    except Exception:
+        frame = None
+
+    if frame is not None and len(frame) >= bundle.window_size:
+        values = frame.loc[:, FEATURE_COLUMNS].to_numpy(dtype=np.float32)
+        raw_window = values[-bundle.window_size :]
+        mean = np.asarray(bundle.mean, dtype=np.float32)
+        std = np.asarray(bundle.std, dtype=np.float32)
+        std = np.where(std == 0, 1.0, std)
+        normalized_window = ((raw_window - mean) / std).tolist()
+        tail = frame.tail(120)
+        payload.update(
+            {
+                "recent_dates": tail.loc[:, "Date"].dt.strftime("%Y-%m-%d").tolist(),
+                "recent_close": tail.loc[:, "Close"].to_numpy(dtype=np.float32).tolist(),
+                "recent_raw_window": raw_window.tolist(),
+                "recent_windows": normalized_window,
+                "recent_window_labels": [f"T{i + 1}" for i in range(len(raw_window))],
+                "recent_open": float(raw_window[-1, 0]),
+                "recent_high": float(raw_window[-1, 1]),
+                "recent_low": float(raw_window[-1, 2]),
+                "recent_close_value": float(raw_window[-1, 3]),
+                "recent_volume": float(raw_window[-1, 4]),
+            }
+        )
+    else:
+        raw_window = bundle.raw_windows[-1] if len(bundle.raw_windows) else None
+
+    if raw_window is not None and len(raw_window):
         volatility_scores = raw_window.var(axis=1)
         volatility_indices = [int(index) for index in np.argsort(volatility_scores)[-6:]]
         focus_timesteps = sorted(set(volatility_indices + list(range(max(0, raw_window.shape[0] - 8), raw_window.shape[0]))))
@@ -693,3 +797,84 @@ def market_regime(symbol: str, use_standard_attention: bool = False) -> JSONResp
 def news(limit: int = 8) -> JSONResponse:
     safe_limit = max(1, min(int(limit), 20))
     return JSONResponse({"news": _fetch_pakistan_news(limit=safe_limit)})
+
+
+@app.get("/ann-stats")
+def ann_stats(symbol: str, use_standard_attention: bool = False) -> JSONResponse:
+    """Return ANN index metadata for a trained symbol."""
+    key = service._key(symbol, None, use_standard_attention)
+    checkpoint_path = service._checkpoint_path(symbol, None, use_standard_attention)
+    if key not in service.models:
+        loaded = service._load_checkpoint(checkpoint_path)
+        if loaded is not None:
+            service._store_loaded_model(key, loaded)
+        else:
+            return JSONResponse({"detail": "Model not trained yet"}, status_code=404)
+    model: MultiHorizonTrendTransformer = service.models[key]["model"]
+    ann = model.ann_index
+    return JSONResponse({
+        "symbol": symbol,
+        "ann_built": ann is not None and ann.is_built(),
+        "ann_backend": ann.backend if ann else "none",
+        "ann_index_size": ann.element_count if ann else 0,
+        "ann_dim": ann.dim if ann else 0,
+        "pipeline": "Step1: Transformer embedding → Step2: ANN (HNSW/LSH) similarity search → Step3: Majority voting",
+        "complexity": {
+            "hnsw": "O(log N) per query – Hierarchical Navigable Small World graph",
+            "lsh": "O(dim × candidates) per query – Random Projection LSH",
+        },
+    })
+
+
+@app.post("/ann-neighbors")
+async def ann_neighbors(request: Request) -> JSONResponse:
+    """Return the k nearest historical neighbours for the latest window of *symbol*.
+
+    Request body: { "symbol": "HBL", "k": 7 }
+    Response includes each neighbour's label, distance, and date (if available).
+    """
+    payload, _ = await _extract_payload(request)
+    symbol = str(payload.get("symbol") or payload.get("stock") or "").strip()
+    if not symbol:
+        return JSONResponse({"detail": "symbol is required"}, status_code=400)
+    k = int(payload.get("k", 7))
+    use_standard_attention = _as_bool(payload.get("use_standard_attention"), default=False)
+
+    key = service._key(symbol, None, use_standard_attention)
+    checkpoint_path = service._checkpoint_path(symbol, None, use_standard_attention)
+    if key not in service.models:
+        loaded = service._load_checkpoint(checkpoint_path)
+        if loaded is not None:
+            service._store_loaded_model(key, loaded)
+        else:
+            service.train(symbol=symbol, use_standard_attention=use_standard_attention)
+
+    model: MultiHorizonTrendTransformer = service.models[key]["model"]
+    bundle: ProcessedBundle = service.models[key]["bundle"]
+
+    if model.ann_index is None or not model.ann_index.is_built():
+        return JSONResponse({"detail": "ANN index not built for this symbol. Retrain the model."}, status_code=412)
+
+    latest_window = torch.from_numpy(bundle.all_x[-1:]).float().to(DEVICE)
+    query_emb = model.embed(latest_window)
+    ann_pred = model.ann_index.predict(query_emb, k=k)
+
+    # Map integer labels → class names and try to attach dates
+    neighbours = []
+    for rank, (lbl, dist) in enumerate(zip(ann_pred.neighbour_labels, ann_pred.neighbour_distances)):
+        entry: dict[str, Any] = {
+            "rank": rank + 1,
+            "label": lbl,
+            "distance": round(float(dist), 6),
+        }
+        neighbours.append(entry)
+    return JSONResponse({
+        "symbol": symbol,
+        "k": k,
+        "ann_backend": model.ann_index.backend,
+        "final_label": ann_pred.label,
+        "final_confidence": ann_pred.confidence,
+        "final_probabilities": ann_pred.probabilities,
+        "neighbours": neighbours,
+        "pipeline": "Transformer → ANN (HNSW/LSH) → Majority Voting",
+    })

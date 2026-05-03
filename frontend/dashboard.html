@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard â€” ASTA Terminal</title>
-  <meta name="description" content="AI trading dashboard with ASTA, Tape, and MHVP model predictions for PSX stocks." />
+  <title>Dashboard — ASTA Terminal</title>
+  <meta name="description" content="AI trading dashboard with ASTA, Tape, and ANN Voting model predictions for PSX stocks." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800;14..32,900&display=swap" rel="stylesheet" />
@@ -14,11 +14,11 @@
 </head>
 <body class="terminal-body">
 
-  <!-- â”€â”€â”€ SIDEBAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <!-- ─── SIDEBAR ───────────────────────────────────────────── -->
   <nav class="t-sidebar" id="tSidebar">
     <div class="t-sidebar-logo">
       <a href="/" class="t-logo-link">
-        <span class="logo-mark">Î›</span>
+        <span class="logo-mark">Λ</span>
         <span class="logo-text">ASTA Terminal</span>
       </a>
     </div>
@@ -37,8 +37,6 @@
       <li><a href="/charts" class="t-nav-link" data-nav-tab="charts"><i class="fa-solid fa-chart-line"></i><span>Charts</span></a></li>
       <li><a href="/signals" class="t-nav-link" data-nav-tab="signals"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI Signals</span></a></li>
       <li><a href="/market" class="t-nav-link" data-nav-tab="market"><i class="fa-solid fa-bolt"></i><span>Market Feed</span></a></li>
-      <li><a href="/portfolio" class="t-nav-link" data-nav-tab="portfolio"><i class="fa-solid fa-wallet"></i><span>Portfolio</span></a></li>
-      <li><a href="/insights" class="t-nav-link" data-nav-tab="insights"><i class="fa-solid fa-newspaper"></i><span>Insights</span></a></li>
     </ul>
 
     <div class="t-sidebar-alerts">
@@ -55,12 +53,12 @@
       <div class="t-live-indicator">
         <span class="live-dot"></span>
         <span id="liveStatusText">LIVE</span>
-        <span class="t-model-badge" id="modelStatusChip">ASTA + TAPE + MHVP</span>
+        <span class="t-model-badge" id="modelStatusChip">ASTA + TAPE + ANN</span>
       </div>
     </div>
   </nav>
 
-  <!-- â”€â”€â”€ MAIN CONTENT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+  <!-- ─── MAIN CONTENT ──────────────────────────────────────── -->
   <main class="t-main">
 
     <!-- TOPBAR -->
@@ -75,9 +73,9 @@
         </div>
       </div>
       <div class="t-topbar-right">
-        <div class="t-price-chip" id="topbarPriceChip">
+        <div class="t-price-chip">
           <span class="t-price-label">Price</span>
-          <strong id="topbarPriceChip">â€”</strong>
+          <strong id="topbarPriceChip">—</strong>
         </div>
         <div class="t-mode-chip" id="topbarModeChip">ASTA</div>
         <div class="t-status-dot-wrapper">
@@ -97,18 +95,18 @@
         </div>
         <div class="t-status-item">
           <span>Market Regime</span>
-          <strong id="regimeTextMirror">â€”</strong>
+          <strong id="regimeTextMirror">—</strong>
         </div>
         <div class="t-status-item">
           <span>Engine</span>
-          <strong>ASTA + TAPE + MHVP</strong>
+          <strong>ASTA + TAPE + ANN</strong>
         </div>
         <div class="t-status-item">
           <div id="statusBar" class="t-inline-status">Ready</div>
         </div>
       </div>
 
-      <!-- â”€ SECTION: CONTROLS â”€ -->
+      <!-- ─ SECTION: CONTROLS ─ -->
       <section class="t-section">
         <div class="t-section-header">
           <h2 class="t-section-title"><i class="fa-solid fa-sliders"></i> Controls</h2>
@@ -170,11 +168,11 @@
             <div class="t-forecast-meta-row">
               <div class="t-meta-item">
                 <span>Price Range</span>
-                <strong id="futurePriceRange">â€”</strong>
+                <strong id="futurePriceRange">—</strong>
               </div>
               <div class="t-meta-item">
                 <span>Regime</span>
-                <strong id="futureRegimeValue">â€”</strong>
+                <strong id="futureRegimeValue">—</strong>
               </div>
             </div>
           </div>
@@ -185,7 +183,7 @@
             <div class="t-summary-grid">
               <div class="t-summary-item">
                 <span>Current Price</span>
-                <strong id="currentPriceValue">â€”</strong>
+                <strong id="currentPriceValue">—</strong>
               </div>
               <div class="t-summary-item">
                 <span>Trend Direction</span>
@@ -193,7 +191,7 @@
               </div>
               <div class="t-summary-item">
                 <span>Trading Volume</span>
-                <strong id="tradingVolumeValue">â€”</strong>
+                <strong id="tradingVolumeValue">—</strong>
               </div>
               <div class="t-summary-item confidence-summary-item">
                 <span>Model Confidence</span>
@@ -206,153 +204,7 @@
         </div>
       </section>
 
-      <!-- â”€ SECTION: MULTI-MODEL PREDICTIONS â”€ -->
-      <section class="t-section">
-        <div class="t-section-header">
-          <h2 class="t-section-title"><i class="fa-solid fa-wand-magic-sparkles"></i> Multi-Model Prediction</h2>
-          <div class="t-section-meta">Train the model and click Predict Trend to populate</div>
-        </div>
-        <div class="t-prediction-strip">
-          <!-- Final Signal -->
-          <div class="t-card t-signal-card" id="finalSignalCard">
-            <div class="t-signal-badge-wrap">
-              <div class="t-signal-eyebrow">MERGED AI SIGNAL</div>
-              <div class="t-signal-label" id="trendLabel">NEUTRAL</div>
-              <div class="t-signal-confidence">
-                <span>Confidence</span>
-                <strong id="confidenceValue">0.00%</strong>
-              </div>
-            </div>
-            <div class="t-signal-action-indicator" id="signalActionIndicator">â€”</div>
-          </div>
-
-          <!-- ASTA Card -->
-          <div class="t-card t-model-pred-card">
-            <div class="t-model-pred-header">
-              <span class="t-model-badge-tag asta">ASTA</span>
-              <span class="t-model-pred-name">Adaptive Sparse Temporal Attention</span>
-            </div>
-            <div class="t-model-prob-bars" id="astaProbBars">
-              <div class="t-prob-row">
-                <span>Down</span>
-                <div class="t-prob-track"><div class="t-prob-fill down" style="width:33%"></div></div>
-                <span>33%</span>
-              </div>
-              <div class="t-prob-row">
-                <span>Neutral</span>
-                <div class="t-prob-track"><div class="t-prob-fill neutral" style="width:33%"></div></div>
-                <span>33%</span>
-              </div>
-              <div class="t-prob-row">
-                <span>Up</span>
-                <div class="t-prob-track"><div class="t-prob-fill up" style="width:33%"></div></div>
-                <span>33%</span>
-              </div>
-            </div>
-            <div class="t-model-verdict" id="astaVerdict">â€”</div>
-          </div>
-
-          <!-- TAPE Card -->
-          <div class="t-card t-model-pred-card">
-            <div class="t-model-pred-header">
-              <span class="t-model-badge-tag tape">TAPE</span>
-              <span class="t-model-pred-name">Trend-Aware Positional Encoding</span>
-            </div>
-            <div class="t-prob-bars" id="tapeProbBars">
-              <div class="t-prob-row">
-                <span>Down</span>
-                <div class="t-prob-track"><div class="t-prob-fill down" style="width:33%"></div></div>
-                <span>33%</span>
-              </div>
-              <div class="t-prob-row">
-                <span>Neutral</span>
-                <div class="t-prob-track"><div class="t-prob-fill neutral" style="width:33%"></div></div>
-                <span>33%</span>
-              </div>
-              <div class="t-prob-row">
-                <span>Up</span>
-                <div class="t-prob-track"><div class="t-prob-fill up" style="width:33%"></div></div>
-                <span>33%</span>
-              </div>
-            </div>
-            <div class="t-model-verdict" id="tapeVerdict">â€”</div>
-          </div>
-
-          <!-- MHVP Card -->
-          <div class="t-card t-model-pred-card">
-            <div class="t-model-pred-header">
-              <span class="t-model-badge-tag mhvp">MHVP</span>
-              <span class="t-model-pred-name">Multi-Horizon Voting Predictor</span>
-            </div>
-            <div class="t-horizon-mini-grid" id="horizonResults">
-              <div class="t-horizon-mini">
-                <small>Short</small>
-                <strong>â€”</strong>
-              </div>
-              <div class="t-horizon-mini">
-                <small>Mid</small>
-                <strong>â€”</strong>
-              </div>
-              <div class="t-horizon-mini">
-                <small>Long</small>
-                <strong>â€”</strong>
-              </div>
-            </div>
-            <div class="t-model-verdict" id="mhvpVerdict">â€”</div>
-          </div>
-        </div>
-
-        <!-- Probabilities -->
-        <div class="t-prob-section">
-          <div class="t-card" style="grid-column:1/-1">
-            <h3 class="t-card-title">Prediction Probabilities</h3>
-            <div class="t-prob-grid" id="probabilities"></div>
-          </div>
-        </div>
-      </section>
-
-      <!-- â”€ SECTION: AI EXPLAINABILITY â”€ -->
-      <section class="t-section">
-        <div class="t-section-header">
-          <h2 class="t-section-title"><i class="fa-solid fa-lightbulb"></i> AI Explainability</h2>
-          <div class="t-section-meta">Why did the model make this prediction?</div>
-        </div>
-        <div class="t-explain-grid">
-          <div class="t-card t-explain-card" id="whyPredictionPanel">
-            <div class="t-explain-icon"><i class="fa-solid fa-crosshairs"></i></div>
-            <h4>ASTA Attention Focus</h4>
-            <p>Select a stock and train the model to see which timesteps ASTA focused on.</p>
-          </div>
-          <div class="t-card t-explain-card" id="trendInfluencePanel">
-            <div class="t-explain-icon"><i class="fa-solid fa-arrow-trend-up"></i></div>
-            <h4>Trend Influence Score</h4>
-            <p>Trend influence score will appear after prediction.</p>
-          </div>
-          <div class="t-card t-explain-card" id="volatilityContributionPanel">
-            <div class="t-explain-icon"><i class="fa-solid fa-wave-square"></i></div>
-            <h4>Volatility Contribution</h4>
-            <p>Volatility contribution will appear after prediction.</p>
-          </div>
-        </div>
-
-        <!-- ASTA Focus Timesteps & Volatility Spikes -->
-        <div class="t-focus-row">
-          <div class="t-card">
-            <h3 class="t-card-title"><i class="fa-solid fa-magnifying-glass"></i> ASTA Focus Timesteps</h3>
-            <div class="t-focus-pills" id="focusTimestepsPanel">
-              <div class="t-focus-empty">No focus points yet. Load data first.</div>
-            </div>
-          </div>
-          <div class="t-card">
-            <h3 class="t-card-title"><i class="fa-solid fa-triangle-exclamation"></i> Volatility Spikes</h3>
-            <div class="t-focus-pills" id="volatilitySpikesPanel">
-              <div class="t-focus-empty">No spikes detected yet.</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- â”€ SECTION: CHARTS â”€ -->
+      <!-- ─ SECTION: CHARTS ─ -->
       <section class="t-section">
         <div class="t-section-header">
           <h2 class="t-section-title"><i class="fa-solid fa-chart-line"></i> Price Charts</h2>
@@ -360,7 +212,7 @@
         </div>
         <div class="t-charts-grid">
           <div class="t-card t-chart-card">
-            <h3 class="t-card-title">Close Price & ASTA Focus</h3>
+            <h3 class="t-card-title">Close Price & Forecast</h3>
             <canvas id="lineChart"></canvas>
           </div>
           <div class="t-card t-chart-card">
@@ -370,36 +222,7 @@
         </div>
       </section>
 
-      <!-- â”€ SECTION: MODEL INSIGHTS â”€ -->
-      <section class="t-section">
-        <div class="t-section-header">
-          <h2 class="t-section-title"><i class="fa-solid fa-microchip"></i> Model Insights</h2>
-        </div>
-        <div class="t-insights-grid">
-          <div class="t-card">
-            <h3 class="t-card-title">Training Metrics</h3>
-            <div class="t-metrics-grid" id="metrics"></div>
-          </div>
-          <div class="t-card">
-            <h3 class="t-card-title">Runtime Comparison</h3>
-            <div id="modelRuntimeGrid"></div>
-          </div>
-          <div class="t-card">
-            <h3 class="t-card-title">Complexity</h3>
-            <div id="modelComplexityGrid"></div>
-          </div>
-          <div class="t-card">
-            <h3 class="t-card-title">Algorithm Analysis</h3>
-            <div id="analysisGrid"></div>
-          </div>
-        </div>
-        <div class="t-card t-card-full" style="margin-top:20px">
-          <h3 class="t-card-title">Model Stats</h3>
-          <div class="t-summary-grid" id="modelStatsGrid"></div>
-        </div>
-      </section>
-
-      <!-- â”€ SECTION: DATA UPLOAD â”€ -->
+      <!-- ─ SECTION: DATA UPLOAD ─ -->
       <section class="t-section">
         <div class="t-section-header">
           <h2 class="t-section-title"><i class="fa-solid fa-upload"></i> Data Upload & Training</h2>
@@ -436,35 +259,6 @@
         </div>
       </section>
 
-      <!-- â”€ SECTION: PORTFOLIO â”€ -->
-      <section class="t-section">
-        <div class="t-section-header">
-          <h2 class="t-section-title"><i class="fa-solid fa-wallet"></i> Portfolio Simulation</h2>
-          <a href="/portfolio" class="t-section-link">Full Portfolio <i class="fa-solid fa-arrow-right"></i></a>
-        </div>
-        <div class="t-portfolio-grid">
-          <div class="t-card">
-            <h3 class="t-card-title">Simulate Trade</h3>
-            <div class="t-form-group">
-              <label class="t-label">Buy Quantity</label>
-              <input id="portfolioQtyInput" type="number" min="1" step="1" value="10" class="t-input" />
-            </div>
-            <div class="t-form-group">
-              <label class="t-label">Entry Price</label>
-              <input id="portfolioEntryInput" type="number" min="0" step="0.01" placeholder="Auto from current price" class="t-input" />
-            </div>
-            <div class="t-action-buttons">
-              <button id="simulateBuyBtn" class="t-btn t-btn-accent"><i class="fa-solid fa-arrow-trend-up"></i> Simulate Buy</button>
-              <button id="resetPortfolioBtn" class="t-btn t-btn-outline"><i class="fa-solid fa-rotate-left"></i> Reset</button>
-            </div>
-          </div>
-          <div class="t-card t-card-wide">
-            <h3 class="t-card-title">Portfolio Performance</h3>
-            <div class="t-portfolio-stats" id="portfolioStats"></div>
-            <canvas id="portfolioChart" height="120"></canvas>
-          </div>
-        </div>
-      </section>
 
     </div><!-- end t-page-content -->
   </main>

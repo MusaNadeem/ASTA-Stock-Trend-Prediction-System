@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Charts â€” ASTA Terminal</title>
+  <title>Charts — ASTA Terminal</title>
   <meta name="description" content="Interactive stock charts with AI signal overlays and technical indicators." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,7 +16,7 @@
 
   <nav class="t-sidebar" id="tSidebar">
     <div class="t-sidebar-logo">
-      <a href="/" class="t-logo-link"><span class="logo-mark">Î›</span><span class="logo-text">ASTA Terminal</span></a>
+      <a href="/" class="t-logo-link"><span class="logo-mark">Λ</span><span class="logo-text">ASTA Terminal</span></a>
     </div>
     <div class="t-sidebar-stock">
       <label class="t-sidebar-label">Active Stock</label>
@@ -30,8 +30,6 @@
       <li><a href="/charts" class="t-nav-link active" data-nav-tab="charts"><i class="fa-solid fa-chart-line"></i><span>Charts</span></a></li>
       <li><a href="/signals" class="t-nav-link"><i class="fa-solid fa-wand-magic-sparkles"></i><span>AI Signals</span></a></li>
       <li><a href="/market" class="t-nav-link"><i class="fa-solid fa-bolt"></i><span>Market Feed</span></a></li>
-      <li><a href="/portfolio" class="t-nav-link"><i class="fa-solid fa-wallet"></i><span>Portfolio</span></a></li>
-      <li><a href="/insights" class="t-nav-link"><i class="fa-solid fa-newspaper"></i><span>Insights</span></a></li>
     </ul>
     <div class="t-sidebar-bottom">
       <div class="t-live-indicator"><span class="live-dot"></span><span>LIVE</span></div>
@@ -50,7 +48,7 @@
       <div class="t-topbar-right">
         <div class="t-price-chip">
           <span class="t-price-label">Price</span>
-          <strong id="chartPriceValue">â€”</strong>
+          <strong id="chartPriceValue">—</strong>
         </div>
         <div class="t-mode-chip" id="chartModeChip">ASTA</div>
       </div>
@@ -93,7 +91,7 @@
           <div class="t-chart-header">
             <div>
               <h3 class="t-card-title" id="mainChartTitle">Price Chart</h3>
-              <div class="t-chart-subtitle" id="mainChartSubtitle">OHLCV Â· ASTA focus points Â· Forecast overlay</div>
+              <div class="t-chart-subtitle" id="mainChartSubtitle">OHLCV · ASTA focus points · Forecast overlay</div>
             </div>
             <div class="t-chart-legend">
               <span class="t-legend-item"><span class="t-legend-dot price"></span>Close Price</span>
@@ -102,7 +100,7 @@
               <span class="t-legend-item"><span class="t-legend-dot vol"></span>Volatility</span>
             </div>
           </div>
-          <canvas id="lineChart" class="t-chart-canvas-lg"></canvas>
+          <canvas id="chartsPageLineChart" class="t-chart-canvas-lg"></canvas>
         </div>
       </section>
 
@@ -112,7 +110,7 @@
           <!-- Trend Probability Bar Chart -->
           <div class="t-card t-chart-card">
             <h3 class="t-card-title">Trend Probability Breakdown</h3>
-            <canvas id="barChart"></canvas>
+            <canvas id="chartsPageBarChart"></canvas>
           </div>
 
           <!-- Volume Chart -->
@@ -139,22 +137,22 @@
         <div class="t-guide-grid">
           <div class="t-card t-guide-card">
             <div class="t-guide-dot price"></div>
-            <h4>Teal Line â€” Close Price</h4>
+            <h4>Teal Line — Close Price</h4>
             <p>The historical close price series for the selected stock over the last 60 sliding-window timesteps.</p>
           </div>
           <div class="t-card t-guide-card">
             <div class="t-guide-dot focus"></div>
-            <h4>Yellow Dots â€” ASTA Focus</h4>
+            <h4>Yellow Dots — ASTA Focus</h4>
             <p>Points the ASTA model assigned highest attention weight to. These are the timesteps that most influenced the prediction.</p>
           </div>
           <div class="t-card t-guide-card">
             <div class="t-guide-dot forecast"></div>
-            <h4>Dashed Line â€” Forecast</h4>
-            <p>Projected price trajectory from MHVP recursive forecasting. Run a prediction to see the AI forecast curve extend the chart.</p>
+            <h4>Dashed Line — Forecast</h4>
+            <p>Projected price trajectory from Transformer recursive forecasting. Run a prediction to see the AI forecast curve extend the chart.</p>
           </div>
           <div class="t-card t-guide-card">
             <div class="t-guide-dot vol"></div>
-            <h4>Blue Area â€” Volatility</h4>
+            <h4>Blue Area — Volatility</h4>
             <p>Rolling variance of the price window scaled for overlay display. Peaks indicate regime uncertainty periods.</p>
           </div>
         </div>
@@ -164,8 +162,6 @@
   </main>
 
   <div id="toastContainer" class="t-toast-container" aria-live="polite"></div>
-
-  <script src="/static/app.js?v=2"></script>
   <script>
     document.getElementById('sidebarToggle').addEventListener('click', () => {
       document.getElementById('tSidebar').classList.toggle('mobile-open');
@@ -186,7 +182,7 @@
       const symbol = stockSelect.value;
       if (!symbol) return;
       document.getElementById('chartSymbolBreadcrumb').textContent = symbol;
-      document.getElementById('mainChartTitle').textContent = symbol + ' â€” Price Chart';
+      document.getElementById('mainChartTitle').textContent = symbol + ' — Price Chart';
       chartLoadBtn.disabled = true;
       chartLoadBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Loading...';
       try {
@@ -233,7 +229,7 @@
       const showMA = document.getElementById('showMA').checked;
 
       // Main line chart
-      const ctx = document.getElementById('lineChart').getContext('2d');
+      const ctx = document.getElementById('chartsPageLineChart').getContext('2d');
       if (window.mainLineChart) window.mainLineChart.destroy();
 
       const forecastLabels = chartPageForecast?.forecast_curve ? chartPageForecast.forecast_curve.map(p => `F${p.step}`) : [];
@@ -326,7 +322,7 @@
       }
 
       // Trigger bar chart from global if it exists
-      const barCtx = document.getElementById('barChart').getContext('2d');
+      const barCtx = document.getElementById('chartsPageBarChart').getContext('2d');
       if (window.chartBarChart) window.chartBarChart.destroy();
       window.chartBarChart = new Chart(barCtx, {
         type: 'bar',

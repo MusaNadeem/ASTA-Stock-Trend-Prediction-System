@@ -9,7 +9,7 @@ import pandas as pd
 import torch
 
 from .attention import extract_asta_focus_indices
-from .model import MultiHorizonTrendTransformer
+from .embedding_model import MultiHorizonTrendTransformer
 from .predictor import TREND_CLASSES
 from .preprocessing import ProcessedBundle
 
@@ -99,16 +99,20 @@ def _smooth_values(values: Sequence[float], alpha: float = 0.35) -> list[float]:
 def _forecast_step(
     model: MultiHorizonTrendTransformer,
     current_window: torch.Tensor,
+    mean: torch.Tensor,
+    std: torch.Tensor,
 ) -> tuple[torch.Tensor, dict[str, object]]:
     prediction = model.predict(current_window)
     horizon_labels = prediction.horizon_labels
     horizon_confidences = prediction.horizon_confidences
     trend_score = prediction.probabilities[2] - prediction.probabilities[0]
 
-    base_close = float(current_window[0, -1, 3].item())
-    base_high = float(current_window[0, -1, 1].item())
-    base_low = float(current_window[0, -1, 2].item())
-    base_volume = float(current_window[0, -1, 4].item())
+    raw_window = current_window * std + mean
+
+    base_close = float(raw_window[0, -1, 3].item())
+    base_high = float(raw_window[0, -1, 1].item())
+    base_low = float(raw_window[0, -1, 2].item())
+    base_volume = float(raw_window[0, -1, 4].item())
 
     direction_scale = 1.0 + trend_score * 0.03
     volatility_scale = 1.0 + max(0.01, float(prediction.confidence)) * 0.015
@@ -117,13 +121,14 @@ def _forecast_step(
     next_low = max(min(base_low * (2.0 - volatility_scale), next_close), 1e-6)
     next_volume = max(base_volume * (1.0 + abs(trend_score) * 0.05), 0.0)
 
-    next_row = current_window.clone()
-    shifted = torch.roll(next_row, shifts=-1, dims=1)
-    shifted[0, -1, 0] = next_close * 0.995
-    shifted[0, -1, 1] = next_high
-    shifted[0, -1, 2] = next_low
-    shifted[0, -1, 3] = next_close
-    shifted[0, -1, 4] = next_volume
+    shifted_raw = torch.roll(raw_window, shifts=-1, dims=1)
+    shifted_raw[0, -1, 0] = next_close * 0.995
+    shifted_raw[0, -1, 1] = next_high
+    shifted_raw[0, -1, 2] = next_low
+    shifted_raw[0, -1, 3] = next_close
+    shifted_raw[0, -1, 4] = next_volume
+
+    shifted = (shifted_raw - mean) / std
 
     result = {
         "label": prediction.label,
@@ -143,15 +148,21 @@ def recursive_forecast(
     bundle: ProcessedBundle,
     steps: int,
     device: str | torch.device,
+    seed_window: torch.Tensor | None = None,
+    seed_raw_window: np.ndarray | None = None,
+    seed_closes: Sequence[float] | None = None,
 ) -> dict[str, object]:
     steps = max(int(steps), 1)
-    current_window = torch.from_numpy(bundle.all_x[-1:]).float().to(device)
+    current_window = seed_window if seed_window is not None else torch.from_numpy(bundle.all_x[-1:]).float().to(device)
+    mean = torch.from_numpy(np.asarray(bundle.mean, dtype=np.float32)).to(device).view(1, 1, -1)
+    std = torch.from_numpy(np.asarray(bundle.std, dtype=np.float32)).to(device).view(1, 1, -1)
+    std = torch.where(std.abs() < 1e-8, torch.ones_like(std), std)
     forecast_rows: list[dict[str, float | int | str]] = []
     predicted_closes: list[float] = []
     predictions: list[ForecastPoint] = []
 
     for step in range(1, steps + 1):
-        current_window, step_result = _forecast_step(model, current_window)
+        current_window, step_result = _forecast_step(model, current_window, mean=mean, std=std)
         predicted_closes.append(float(step_result["close"]))
         predictions.append(
             ForecastPoint(
@@ -176,10 +187,18 @@ def recursive_forecast(
         )
 
     smoothed_closes = _smooth_values(predicted_closes)
-    focus_timesteps = extract_asta_focus_indices(torch.from_numpy(bundle.raw_windows[-1]).float()) if len(bundle.raw_windows) else []
-    volatility_scores = bundle.raw_windows[-1].var(axis=1).tolist() if len(bundle.raw_windows) else []
+
+    raw_window = seed_raw_window
+    if raw_window is None and len(bundle.raw_windows):
+        raw_window = bundle.raw_windows[-1]
+    if raw_window is None:
+        raw_window = np.zeros((bundle.window_size, 5), dtype=np.float32)
+
+    focus_timesteps = extract_asta_focus_indices(torch.from_numpy(raw_window).float()) if len(raw_window) else []
+    volatility_scores = raw_window.var(axis=1).tolist() if len(raw_window) else []
     last_prediction = predictions[-1]
-    market_regime = market_regime_from_series(bundle.closes, volatility_scores)
+    closes = seed_closes if seed_closes is not None else bundle.closes
+    market_regime = market_regime_from_series(closes, volatility_scores)
     explanation = (
         f"The model leans {last_prediction.label.lower()} because the recent window shows "
         f"{market_regime.lower()} behavior, with the strongest ASTA focus around the last "
@@ -204,9 +223,22 @@ def forecast_for_date(
     bundle: ProcessedBundle,
     future_date: str | date | datetime,
     device: str | torch.device,
+    last_date: str | pd.Timestamp | None = None,
+    seed_window: torch.Tensor | None = None,
+    seed_raw_window: np.ndarray | None = None,
+    seed_closes: Sequence[float] | None = None,
 ) -> ForecastResult:
-    step_offset = business_day_offset(bundle.dates[-1], future_date)
-    forecast = recursive_forecast(model=model, bundle=bundle, steps=step_offset, device=device)
+    anchor_date = last_date if last_date is not None else bundle.dates[-1]
+    step_offset = business_day_offset(anchor_date, future_date)
+    forecast = recursive_forecast(
+        model=model,
+        bundle=bundle,
+        steps=step_offset,
+        device=device,
+        seed_window=seed_window,
+        seed_raw_window=seed_raw_window,
+        seed_closes=seed_closes,
+    )
     last_point = forecast["forecast_curve"][-1]
     return ForecastResult(
         target_date=str(parse_future_date(future_date).date()),
