@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Insights â€” ASTA Terminal</title>
+  <title>Insights — ASTA Terminal</title>
   <meta name="description" content="Pakistan market news, sentiment analysis, and AI-powered market context." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -15,7 +15,7 @@
 
   <nav class="t-sidebar" id="tSidebar">
     <div class="t-sidebar-logo">
-      <a href="/" class="t-logo-link"><span class="logo-mark">Î›</span><span class="logo-text">ASTA Terminal</span></a>
+      <a href="/" class="t-logo-link"><span class="logo-mark">Λ</span><span class="logo-text">ASTA Terminal</span></a>
     </div>
     <ul class="t-nav-list">
       <li><a href="/dashboard" class="t-nav-link"><i class="fa-solid fa-gauge-high"></i><span>Dashboard</span></a></li>
@@ -74,19 +74,19 @@
             <div class="t-sentiment-breakdown" id="sentimentBreakdown">
               <div class="t-sb-row">
                 <span><i class="fa-solid fa-circle-arrow-up" style="color:#86efac"></i> Bullish signals</span>
-                <strong id="sbBullish">â€”</strong>
+                <strong id="sbBullish">—</strong>
               </div>
               <div class="t-sb-row">
                 <span><i class="fa-solid fa-circle-arrow-down" style="color:#fb7185"></i> Bearish signals</span>
-                <strong id="sbBearish">â€”</strong>
+                <strong id="sbBearish">—</strong>
               </div>
               <div class="t-sb-row">
                 <span><i class="fa-solid fa-arrows-left-right" style="color:#fbbf24"></i> Neutral signals</span>
-                <strong id="sbNeutral">â€”</strong>
+                <strong id="sbNeutral">—</strong>
               </div>
               <div class="t-sb-row">
                 <span><i class="fa-solid fa-newspaper"></i> Total headlines</span>
-                <strong id="sbTotal">â€”</strong>
+                <strong id="sbTotal">—</strong>
               </div>
             </div>
           </div>
@@ -130,14 +130,14 @@
               <h3>How ASTA Works</h3>
             </div>
             <div class="t-explainer-body">
-              <p>Adaptive Sparse Temporal Attention replaces dense O(TÂ²) attention with three candidate selection strategies:</p>
+              <p>Adaptive Sparse Temporal Attention replaces dense O(T²) attention with three candidate selection strategies:</p>
               <ul class="t-explainer-list">
                 <li><strong>Local:</strong> The last k timesteps (recency bias)</li>
                 <li><strong>Log-sparse:</strong> Logarithmically spaced historical points</li>
                 <li><strong>Volatility:</strong> The highest-variance periods</li>
               </ul>
-              <p>These are merged into a sparse attention mask, reducing computation to approximately O(T log T Ã— d).</p>
-              <div class="t-complexity-badge">O(T log T Ã— d) vs O(TÂ² Ã— d)</div>
+              <p>These are merged into a sparse attention mask, reducing computation to approximately O(T log T × d).</p>
+              <div class="t-complexity-badge">O(T log T × d) vs O(T² × d)</div>
             </div>
           </div>
 
@@ -147,7 +147,7 @@
               <h3>Trend-Aware Encoding</h3>
             </div>
             <div class="t-explainer-body">
-              <p>Standard positional encoding assigns positions 0â€¦T without market context. TAPE modifies this by:</p>
+              <p>Standard positional encoding assigns positions 0…T without market context. TAPE modifies this by:</p>
               <ul class="t-explainer-list">
                 <li><strong>Momentum modulation:</strong> Scales encoding by rolling price momentum</li>
                 <li><strong>Volatility adjustment:</strong> Reduces position weights in high-variance periods</li>
@@ -170,7 +170,7 @@
                 <li><strong>Long-term head:</strong> 7-step ahead prediction</li>
               </ul>
               <p>Learned vote weights merge these into a single consensus. The weights are trained jointly via cross-entropy loss on each head plus a combined loss on the weighted vote target.</p>
-              <div class="t-complexity-badge">3-head ensemble â†’ weighted consensus</div>
+              <div class="t-complexity-badge">3-head ensemble → weighted consensus</div>
             </div>
           </div>
 
@@ -207,7 +207,7 @@
             </div>
             <div class="t-dataset-stat">
               <span>Data format</span>
-              <strong>OHLCV Â· CSV Â· Daily bars</strong>
+              <strong>OHLCV · CSV · Daily bars</strong>
             </div>
             <div class="t-dataset-stat">
               <span>Window size (T)</span>
@@ -302,7 +302,7 @@
           const isBull = bullishKw.some(kw => titleLower.includes(kw));
           const isBear = bearishKw.some(kw => titleLower.includes(kw));
           const tone = isBull ? 'bullish' : isBear ? 'bearish' : 'neutral';
-          const toneIcon = isBull ? 'â†‘' : isBear ? 'â†“' : 'â†’';
+          const toneIcon = isBull ? '↑' : isBear ? '↓' : '→';
           const toneLabel = isBull ? 'Bullish' : isBear ? 'Bearish' : 'Neutral';
           return `<article class="t-news-card ${tone}">
             <div class="t-news-card-header">
@@ -336,7 +336,7 @@
         // AI Summary
         const keywords = getKeywords(items);
         const topKw = keywords.slice(0, 5).join(', ');
-        document.getElementById('aiSummaryText').textContent = `Pakistan market news is showing ${sentLabel.toLowerCase()} sentiment. Key themes include ${topKw}. ${score > 60 ? 'Positive momentum in headlines may support bullish AI signals.' : score < 40 ? 'Negative sentiment in headlines may reinforce downtrend predictions.' : 'Mixed headlines suggest continued sideways movement â€” monitor for catalyst events.'}`;
+        document.getElementById('aiSummaryText').textContent = `Pakistan market news is showing ${sentLabel.toLowerCase()} sentiment. Key themes include ${topKw}. ${score > 60 ? 'Positive momentum in headlines may support bullish AI signals.' : score < 40 ? 'Negative sentiment in headlines may reinforce downtrend predictions.' : 'Mixed headlines suggest continued sideways movement — monitor for catalyst events.'}`;
         document.getElementById('summaryKeywords').innerHTML = keywords.map(kw => `<span class="t-kw-chip">${kw}</span>`).join('');
 
       } catch (e) {
