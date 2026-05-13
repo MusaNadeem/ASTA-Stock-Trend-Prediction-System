@@ -43,7 +43,7 @@
       <div class="t-topbar-right">
         <div class="t-price-chip">
           <span class="t-price-label">Virtual Cash</span>
-          <strong id="portfolioCashDisplay">$10,000.00</strong>
+          <strong id="portfolioCashDisplay">Rs 10,000.00</strong>
         </div>
       </div>
     </header>
@@ -55,12 +55,12 @@
         <div class="t-portfolio-kpi-row">
           <div class="t-card t-kpi-card">
             <span>Total Value</span>
-            <strong id="kpiTotalValue">$10,000.00</strong>
+            <strong id="kpiTotalValue">Rs 10,000.00</strong>
             <div class="t-kpi-sub">Cash + Positions</div>
           </div>
           <div class="t-card t-kpi-card">
             <span>Unrealized P&L</span>
-            <strong id="kpiPnl">$0.00</strong>
+            <strong id="kpiPnl">Rs 0.00</strong>
             <div class="t-kpi-change" id="kpiPnlPct">0.00%</div>
           </div>
           <div class="t-card t-kpi-card">
@@ -246,7 +246,7 @@
       const qty = parseInt(document.getElementById('portfolioQtyInput').value) || 0;
       const entry = parseFloat(document.getElementById('portfolioEntryInput').value) || currentPrice;
       const cost = qty * entry;
-      document.getElementById('tradeEstCost').textContent = cost > 0 ? `$${cost.toFixed(2)}` : 'â€”';
+      document.getElementById('tradeEstCost').textContent = cost > 0 ? `Rs ${cost.toFixed(2)}` : 'â€”';
     }
 
     document.getElementById('portfolioQtyInput').addEventListener('input', updateTradeSummary);
@@ -288,7 +288,7 @@
         if (pnl > 0) portfolio.winCount++;
         portfolio.tradeCount++;
         portfolio.history.push({ type: 'SELL', symbol, qty: pos.qty, price: entry, pnl, time: new Date().toLocaleTimeString() });
-        showToast(`Sold ${pos.qty} Ã— ${symbol} @ ${entry.toFixed(2)} | P&L: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}`, pnl >= 0 ? 'success' : 'error');
+        showToast(`Sold ${pos.qty} Ã— ${symbol} @ ${entry.toFixed(2)} | P&L: ${pnl >= 0 ? '+' : ''}Rs ${pnl.toFixed(2)}`, pnl >= 0 ? 'success' : 'error');
       }
       updatePortfolioDisplay();
     });
@@ -297,7 +297,7 @@
       portfolio = { cash: 10000, positions: [], history: [], tradeCount: 0, winCount: 0 };
       if (pnlChart) { pnlChart.destroy(); pnlChart = null; }
       updatePortfolioDisplay();
-      showToast('Portfolio reset to $10,000', 'info');
+      showToast('Portfolio reset to Rs 10,000', 'info');
     });
 
     function updatePortfolioDisplay() {
@@ -308,9 +308,9 @@
       const pnlPct = invested > 0 ? (pnl / invested * 100).toFixed(2) : '0.00';
       const winRate = portfolio.tradeCount > 0 ? ((portfolio.winCount / portfolio.tradeCount) * 100).toFixed(1) + '%' : 'â€”';
 
-      document.getElementById('portfolioCashDisplay').textContent = '$' + portfolio.cash.toFixed(2);
-      document.getElementById('kpiTotalValue').textContent = '$' + total.toFixed(2);
-      document.getElementById('kpiPnl').textContent = (pnl >= 0 ? '+' : '') + '$' + pnl.toFixed(2);
+      document.getElementById('portfolioCashDisplay').textContent = 'Rs ' + portfolio.cash.toFixed(2);
+      document.getElementById('kpiTotalValue').textContent = 'Rs ' + total.toFixed(2);
+      document.getElementById('kpiPnl').textContent = (pnl >= 0 ? '+' : '') + 'Rs ' + pnl.toFixed(2);
       document.getElementById('kpiPnl').className = 'strong ' + (pnl >= 0 ? 'positive' : 'negative');
       document.getElementById('kpiPnlPct').textContent = (pnlPct >= 0 ? '+' : '') + pnlPct + '%';
       document.getElementById('kpiPnlPct').className = 't-kpi-change ' + (pnlPct >= 0 ? 'positive' : 'negative');
@@ -332,7 +332,7 @@
             <span>${p.qty}</span>
             <span>${p.entry.toFixed(2)}</span>
             <span>${currentPrice > 0 ? currentPrice.toFixed(2) : 'â€”'}</span>
-            <span class="${posPnl >= 0 ? 'positive' : 'negative'}">${posPnl >= 0 ? '+' : ''}$${posPnl.toFixed(2)}</span>
+            <span class="${posPnl >= 0 ? 'positive' : 'negative'}">${posPnl >= 0 ? '+' : ''}Rs ${posPnl.toFixed(2)}</span>
             <span class="${posRet >= 0 ? 'positive' : 'negative'}">${posRet}%</span>
           </div>`;
         }).join('')}` : '<div class="t-positions-empty"><i class="fa-solid fa-wallet"></i> No open positions</div>';
@@ -347,7 +347,7 @@
             <span>${t.symbol}</span>
             <span>${t.qty}</span>
             <span>${t.price.toFixed(2)}</span>
-            <span class="${t.pnl !== undefined ? (t.pnl >= 0 ? 'positive' : 'negative') : ''}">${t.pnl !== undefined ? (t.pnl >= 0 ? '+' : '') + '$' + t.pnl.toFixed(2) : 'â€”'}</span>
+            <span class="${t.pnl !== undefined ? (t.pnl >= 0 ? 'positive' : 'negative') : ''}">${t.pnl !== undefined ? (t.pnl >= 0 ? '+' : '') + 'Rs ' + t.pnl.toFixed(2) : 'â€”'}</span>
             <span>${t.time}</span>
           </div>`).join('')}` : '<div class="t-positions-empty"><i class="fa-solid fa-clock-rotate-left"></i> No trades yet</div>';
 
@@ -355,9 +355,9 @@
       const statsEl = document.getElementById('portfolioStats');
       statsEl.innerHTML = `
         <div class="t-summary-grid">
-          <div class="t-summary-item"><span>Cash</span><strong>$${portfolio.cash.toFixed(2)}</strong></div>
-          <div class="t-summary-item"><span>Invested</span><strong>$${invested.toFixed(2)}</strong></div>
-          <div class="t-summary-item"><span>Unrealized P&L</span><strong class="${pnl>=0?'positive':'negative'}">${pnl>=0?'+':''}$${pnl.toFixed(2)}</strong></div>
+          <div class="t-summary-item"><span>Cash</span><strong>Rs ${portfolio.cash.toFixed(2)}</strong></div>
+          <div class="t-summary-item"><span>Invested</span><strong>Rs ${invested.toFixed(2)}</strong></div>
+          <div class="t-summary-item"><span>Unrealized P&L</span><strong class="${pnl>=0?'positive':'negative'}">${pnl>=0?'+':''}Rs ${pnl.toFixed(2)}</strong></div>
           <div class="t-summary-item"><span>Return</span><strong class="${pnlPct>=0?'positive':'negative'}">${pnlPct>=0?'+':''}${pnlPct}%</strong></div>
         </div>`;
 
@@ -449,8 +449,8 @@
         resultsEl.innerHTML = `
           <h3 class="t-card-title">Backtest Results â€” ${symbol} â€” ${strategy}</h3>
           <div class="t-backtest-results-grid">
-            <div class="t-bt-metric"><span>Initial Capital</span><strong>$${capital.toFixed(0)}</strong></div>
-            <div class="t-bt-metric"><span>Final Value</span><strong class="${finalValue >= capital ? 'positive' : 'negative'}">$${finalValue.toFixed(2)}</strong></div>
+            <div class="t-bt-metric"><span>Initial Capital</span><strong>Rs ${capital.toFixed(0)}</strong></div>
+            <div class="t-bt-metric"><span>Final Value</span><strong class="${finalValue >= capital ? 'positive' : 'negative'}">Rs ${finalValue.toFixed(2)}</strong></div>
             <div class="t-bt-metric"><span>Total Return</span><strong class="${totalReturn >= 0 ? 'positive' : 'negative'}">${totalReturn >= 0 ? '+' : ''}${totalReturn}%</strong></div>
             <div class="t-bt-metric"><span>Total Trades</span><strong>${trades}</strong></div>
             <div class="t-bt-metric"><span>Win Rate</span><strong>${winRate}%</strong></div>

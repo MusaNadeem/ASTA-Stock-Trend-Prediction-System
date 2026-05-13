@@ -131,7 +131,7 @@ function appendTrainingLog(message, tone = "") {
   if (!trainingLog) return;
   const line = document.createElement("div");
   line.className = `log-line ${tone}`.trim();
-  line.innerHTML = `<span class="prompt">$</span><span>${message}</span>`;
+  line.innerHTML = `<span class="prompt">Rs </span><span>${message}</span>`;
   trainingLog.appendChild(line);
   trainingLog.scrollTop = trainingLog.scrollHeight;
 }
@@ -160,7 +160,7 @@ function setTopbarState({ symbol, price, mode, regime, lifecycle, live = true })
     modelStatusChip.textContent = `${currentSymbol} · ${regime || "Sideways"}`;
   }
   if (topbarPriceChip) {
-    topbarPriceChip.textContent = Number.isFinite(price) ? `$${Number(price).toFixed(2)}` : "--";
+    topbarPriceChip.textContent = Number.isFinite(price) ? `Rs ${Number(price).toFixed(2)}` : "--";
   }
   if (topbarModeChip) {
     topbarModeChip.textContent = mode === "standard" ? "Standard" : "ASTA";
@@ -311,7 +311,7 @@ function renderPrediction(result) {
   if (futureConfidenceValue) futureConfidenceValue.textContent = `${(Number(result.confidence) * 100).toFixed(0)}%`;
   setConfidenceRing(Number(result.confidence) * 100);
   if (result.price_range) {
-    if (futurePriceRange) futurePriceRange.textContent = `$${Number(result.price_range.low).toFixed(2)} - $${Number(result.price_range.high).toFixed(2)}`;
+    if (futurePriceRange) futurePriceRange.textContent = `Rs ${Number(result.price_range.low).toFixed(2)} - Rs ${Number(result.price_range.high).toFixed(2)}`;
   }
   if (futureRegimeValue) futureRegimeValue.textContent = result.market_regime || "--";
   setMarketBadge(result.market_regime || latestDashboardData.trend_direction || "Sideways market");
@@ -579,7 +579,7 @@ async function predictFutureDate() {
     if (futureForecastLabel) futureForecastLabel.textContent = data.label || "Neutral";
     if (futureConfidenceValue) futureConfidenceValue.textContent = `${(Number(data.confidence || 0) * 100).toFixed(0)}%`;
     setConfidenceRing(Number(data.confidence || 0) * 100);
-    if (futurePriceRange) futurePriceRange.textContent = data.price_range ? `$${Number(data.price_range.low).toFixed(2)} - $${Number(data.price_range.high).toFixed(2)}` : `--`;
+    if (futurePriceRange) futurePriceRange.textContent = data.price_range ? `Rs ${Number(data.price_range.low).toFixed(2)} - Rs ${Number(data.price_range.high).toFixed(2)}` : `--`;
     if (futureRegimeValue) futureRegimeValue.textContent = data.market_regime || "--";
     setMarketBadge(data.market_regime || "Sideways market");
     setTopbarState({
