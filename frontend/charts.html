@@ -188,7 +188,7 @@
       try {
         const res = await fetch(`/data?symbol=${encodeURIComponent(symbol)}`);
         chartPageData = await res.json();
-        document.getElementById('chartPriceValue').textContent = Number(chartPageData.current_price || 0).toFixed(2);
+        document.getElementById('chartPriceValue').textContent = 'Rs ' + Number(chartPageData.current_price || 0).toFixed(2);
         renderChartPageCharts();
       } finally {
         chartLoadBtn.disabled = false;
@@ -267,7 +267,7 @@
           plugins: { legend: { labels: { color: '#e8eef7', font: { family: 'Inter' } } } },
           scales: {
             x: { ticks: { color: '#9db0d0', maxRotation: 0, maxTicksLimit: 12 }, grid: { color: 'rgba(148,163,184,0.08)' } },
-            y: { ticks: { color: '#9db0d0' }, grid: { color: 'rgba(148,163,184,0.08)' }, position: 'left' },
+            y: { ticks: { color: '#9db0d0', callback: function(value) { return 'Rs ' + value; } }, grid: { color: 'rgba(148,163,184,0.08)' }, position: 'left' },
             y1: { ticks: { color: '#9db0d0' }, grid: { drawOnChartArea: false }, position: 'right' },
           },
         },
@@ -287,7 +287,7 @@
           plugins: { legend: { labels: { color: '#e8eef7' } } },
           scales: {
             x: { ticks: { color: '#9db0d0', maxRotation: 0, maxTicksLimit: 10 }, grid: { color: 'rgba(148,163,184,0.08)' } },
-            y: { ticks: { color: '#9db0d0' }, grid: { color: 'rgba(148,163,184,0.08)' } },
+            y: { ticks: { color: '#9db0d0', callback: function(value) { return 'Rs ' + value; } }, grid: { color: 'rgba(148,163,184,0.08)' } },
           },
         },
       });
@@ -315,7 +315,7 @@
             plugins: { legend: { labels: { color: '#e8eef7' } } },
             scales: {
               x: { ticks: { color: '#9db0d0', maxRotation: 0, maxTicksLimit: 10 }, grid: { color: 'rgba(148,163,184,0.08)' } },
-              y: { ticks: { color: '#9db0d0' }, grid: { color: 'rgba(148,163,184,0.08)' } },
+              y: { ticks: { color: '#9db0d0', callback: function(value) { return 'Rs ' + value; } }, grid: { color: 'rgba(148,163,184,0.08)' } },
             },
           },
         });
@@ -335,7 +335,7 @@
           plugins: { legend: { labels: { color: '#e8eef7' } } },
           scales: {
             x: { ticks: { color: '#9db0d0' }, grid: { color: 'rgba(148,163,184,0.08)' } },
-            y: { ticks: { color: '#9db0d0' }, grid: { color: 'rgba(148,163,184,0.08)' }, beginAtZero: true, max: 100 },
+            y: { ticks: { color: '#9db0d0', callback: function(value) { return 'Rs ' + value; } }, grid: { color: 'rgba(148,163,184,0.08)' }, beginAtZero: true, max: 100 },
           },
         },
       });

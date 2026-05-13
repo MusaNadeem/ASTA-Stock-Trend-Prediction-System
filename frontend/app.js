@@ -261,7 +261,7 @@ function renderDashboardSummary(data, prediction = null) {
   const currentPrice = Number(data.current_price ?? data.recent_close_value ?? 0);
   const currentVolume = Number(data.current_volume ?? 0);
   const trend = prediction?.label || data.trend_direction || "Neutral";
-  if (currentPriceValue) currentPriceValue.textContent = currentPrice.toFixed(2);
+  if (currentPriceValue) currentPriceValue.textContent = "Rs " + currentPrice.toFixed(2);
   if (trendDirectionValue) trendDirectionValue.textContent = trend;
   if (tradingVolumeValue) tradingVolumeValue.textContent = currentVolume.toLocaleString();
   setDashboardConfidence(Number(prediction?.confidence || latestForecastData?.confidence || 0) * 100);
@@ -388,7 +388,7 @@ function updateChart(data) {
         },
         scales: {
           x: { ticks: { color: "#9db0d0", maxRotation: 0 }, grid: { color: "rgba(148, 163, 184, 0.08)" } },
-          y: { ticks: { color: "#9db0d0" }, grid: { color: "rgba(148, 163, 184, 0.08)" }, beginAtZero: false },
+          y: { ticks: { color: "#9db0d0", callback: function(value) { return "Rs " + value; } }, grid: { color: "rgba(148, 163, 184, 0.08)" }, beginAtZero: false },
         },
       },
     });
@@ -427,7 +427,7 @@ function updateChart(data) {
         },
         scales: {
           x: { ticks: { color: "#9db0d0" }, grid: { color: "rgba(148, 163, 184, 0.08)" } },
-          y: { ticks: { color: "#9db0d0" }, grid: { color: "rgba(148, 163, 184, 0.08)" }, beginAtZero: true, max: 100 },
+          y: { ticks: { color: "#9db0d0", callback: function(value) { return "Rs " + value; } }, grid: { color: "rgba(148, 163, 184, 0.08)" }, beginAtZero: true, max: 100 },
         },
       },
     });

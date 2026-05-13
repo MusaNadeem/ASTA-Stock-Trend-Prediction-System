@@ -284,7 +284,7 @@
       document.getElementById('signalHeroConf').textContent = conf + '%';
       document.getElementById('signalRegime').textContent = forecast.market_regime || data.market_regime || '—';
       document.getElementById('signalPriceRange').textContent = forecast.price_range ? `${Number(forecast.price_range.low).toFixed(2)} – ${Number(forecast.price_range.high).toFixed(2)}` : '—';
-      document.getElementById('signalEstPrice').textContent = forecast.predicted_price ? Number(forecast.predicted_price).toFixed(2) : '—';
+      document.getElementById('signalEstPrice').textContent = forecast.predicted_price ? 'Rs ' + Number(forecast.predicted_price).toFixed(2) : '—';
 
       // Horizon breakdown
       const hp = forecast.horizon_predictions || {};

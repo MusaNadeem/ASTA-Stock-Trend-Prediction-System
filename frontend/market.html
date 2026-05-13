@@ -295,13 +295,13 @@
       const last = closes[closes.length - 1] || 0;
       const prev = closes[closes.length - 2] || last;
       const change = ((last - prev) / prev * 100).toFixed(2);
-      document.getElementById('mktCurrentPrice').textContent = Number(last).toFixed(2);
+      document.getElementById('mktCurrentPrice').textContent = 'Rs ' + Number(last).toFixed(2);
       const changeEl = document.getElementById('mktPriceChange');
       changeEl.textContent = (change >= 0 ? '+' : '') + change + '%';
       changeEl.className = 't-stat-change ' + (change >= 0 ? 'positive' : 'negative');
       document.getElementById('mktVolume').textContent = Number(data.current_volume || vols[vols.length-1] || 0).toLocaleString();
-      document.getElementById('mktHigh').textContent = Number(Math.max(...highs)).toFixed(2);
-      document.getElementById('mktLow').textContent = Number(Math.min(...lows.filter(v => v > 0))).toFixed(2);
+      document.getElementById('mktHigh').textContent = 'Rs ' + Number(Math.max(...highs)).toFixed(2);
+      document.getElementById('mktLow').textContent = 'Rs ' + Number(Math.min(...lows.filter(v => v > 0))).toFixed(2);
       document.getElementById('mktRegime').textContent = regime.market_regime || '—';
       document.getElementById('mktRegimeBadge').textContent = regime.market_regime || 'Sideways market';
       document.getElementById('mktSlope').textContent = regime.trend_slope_hint ? (regime.trend_slope_hint > 0 ? '+' : '') + Number(regime.trend_slope_hint).toFixed(4) : '—';

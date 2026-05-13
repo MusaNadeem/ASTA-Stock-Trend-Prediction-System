@@ -383,7 +383,7 @@
             plugins: { legend: { labels: { color: '#e8eef7' } } },
             scales: {
               x: { ticks: { color: '#9db0d0' }, grid: { color: 'rgba(148,163,184,0.08)' } },
-              y: { ticks: { color: '#9db0d0' }, grid: { color: 'rgba(148,163,184,0.08)' } },
+              y: { ticks: { color: '#9db0d0', callback: function(value) { return 'Rs ' + value; } }, grid: { color: 'rgba(148,163,184,0.08)' } },
             },
           },
         });
